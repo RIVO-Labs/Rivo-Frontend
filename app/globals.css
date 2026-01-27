@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Rivo Light Theme - keeping for compatibility but dark is default */
+    --background: 220 13% 91%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 187 85% 53%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 215 16% 47%;
+    --secondary-foreground: 220 13% 91%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 187 85% 53%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 187 85% 53%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --error: 0 72% 51%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Rivo Dark Theme - New Color Scheme */
+    /* Background: #020617 (slate-950) */
+    --background: 222.2 84% 4.9%;
+    /* Primary Text: #E5E7EB (gray-200) */
+    --foreground: 220 13% 91%;
+    /* Surface/Card: #0F172A (slate-900) */
+    --card: 222.2 84% 7%;
+    --card-foreground: 220 13% 91%;
+    --popover: 222.2 84% 7%;
+    --popover-foreground: 220 13% 91%;
+    /* Primary Accent: #22D3EE (cyan-400) */
+    --primary: 187 85% 53%;
+    --primary-foreground: 222.2 84% 4.9%;
+    /* Secondary Text: #94A3B8 (slate-400) */
+    --secondary: 215 16% 47%;
+    --secondary-foreground: 220 13% 91%;
+    /* Border: #1E293B (slate-800) */
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 187 85% 53%;
+    --accent-foreground: 222.2 84% 4.9%;
+    /* Error: #EF4444 (red-500) */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 220 13% 91%;
+    /* Border: #1E293B (slate-800) */
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 187 85% 53%;
+    /* Success: #22C55E (green-500) */
+    --success: 142 71% 45%;
+    /* Warning: #F59E0B (amber-500) */
+    --warning: 38 92% 50%;
+    /* Error: #EF4444 (red-500) */
+    --error: 0 72% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+}
+
+.animate-in {
+  animation: animateIn 0.3s ease 0.15s both;
+}
+
+@keyframes animateIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient 3s ease infinite;
+}
+
+.bg-size-200 {
+  background-size: 200% 200%;
+}
+
+/* Leaflet custom styles */
+.custom-leaflet-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
