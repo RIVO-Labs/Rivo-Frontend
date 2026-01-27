@@ -8,7 +8,6 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RoleBadge } from '@/components/role-badge';
 import { useAuth } from '@/hooks/useAuth';
 import {
   RiHomeLine,
@@ -23,7 +22,7 @@ import {
   RiInfoCardFill,
   RiMoneyDollarCircleLine,
   RiFileTextLine,
-  RiUserLine,
+  RiUser2Line,
 } from 'react-icons/ri';
 
 interface NavItem {
@@ -57,7 +56,7 @@ const rivoNavItems: NavItem[] = [
   {
     title: 'Employees',
     href: '/dashboard/employees',
-    icon: <RiUserLine className="h-5 w-5" />,
+    icon: <RiUser2Line className="h-5 w-5" />,
   },
   {
     title: 'Payments',
@@ -125,10 +124,12 @@ export function AceternitySidebar({ email }: { email?: string }) {
         <ScrollArea className="h-full py-6 flex flex-col">
           <div className="px-3 py-2">
 
-            {/* Role Badge */}
+            {/* Company Display */}
             {!isCollapsed && (
               <div className="mb-4 px-4">
-                <RoleBadge className="w-full justify-center" />
+                <div className="flex items-center justify-center p-2 bg-primary/10 rounded-lg">
+                  <span className="text-sm font-medium text-primary">RIVO Dashboard</span>
+                </div>
               </div>
             )}
 

@@ -1,0 +1,9 @@
+[
+  {
+    "type": "function",
+    "name": "placeholder",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "view"
+  }
+]

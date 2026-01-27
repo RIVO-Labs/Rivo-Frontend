@@ -25,9 +25,10 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const { address } = useAccount();
-  const { setEncryptionPublicKey, isPending: isKeyPending, isConfirming: isKeyConfirming, isSuccess: isKeySuccess } =
-    useSetEncryptionPublicKey();
-  const { key: publishedKey } = useEncryptionPublicKey(address ? (address as `0x${string}`) : undefined);
+  
+  // Simplified hook usage for RIVO
+  const setEncryptionKey = useSetEncryptionPublicKey();
+  const { data: publishedKey } = useEncryptionPublicKey();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -70,15 +71,6 @@ export default function ProfilePage() {
       }
     }
   }, [user]);
-
-  useEffect(() => {
-    if (isKeySuccess) {
-      toast({
-        title: "Encryption Key Published",
-        description: "Your public key is now available for active counterparts.",
-      });
-    }
-  }, [isKeySuccess, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +159,7 @@ export default function ProfilePage() {
         throw new Error("Unexpected response from wallet.");
       }
 
-      setEncryptionPublicKey(publicKey);
+      setEncryptionKey.mutate(publicKey);
     } catch (error) {
       toast({
         title: "Failed to Publish Key",
@@ -237,15 +229,13 @@ export default function ProfilePage() {
                   type="button"
                   variant="outline"
                   onClick={handlePublishEncryptionKey}
-                  disabled={isKeyPending || isKeyConfirming}
+                  disabled={setEncryptionKey.isLoading}
                 >
-                  {isKeyPending
-                    ? "Confirm in Wallet..."
-                    : isKeyConfirming
-                      ? "Publishing..."
-                      : publishedKey
-                        ? "Update Encryption Key"
-                        : "Publish Encryption Key"}
+                  {setEncryptionKey.isLoading
+                    ? "Publishing..."
+                    : publishedKey
+                      ? "Update Encryption Key"
+                      : "Publish Encryption Key"}
                 </Button>
               </div>
               {/* Wallet Info */}

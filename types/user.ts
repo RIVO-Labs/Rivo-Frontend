@@ -1,73 +1,98 @@
-// User role types for Rivo platform
-
-export type UserRole = 'freelancer' | 'company';
+// RIVO platform types - Account Payable & Payroll solution
 
 export interface UserProfile {
     walletAddress?: string;
-    role: UserRole;
-    username?: string;
+    companyName?: string;
     email?: string;
     createdAt?: string;
 }
 
-// Role-specific data interfaces
-export interface FreelancerStats {
-    activeAgreements: number;
-    totalEarned: number;
-    pendingPayments: number;
-    completedProjects: number;
-}
-
-export interface CompanyStats {
-    activeAgreements: number;
-    totalEscrowed: number;
-    pendingApprovals: number;
-    teamMembers: number;
-}
-
-// Agreement interface with role perspective
-// MUST match RivoHub.sol smart contract types exactly
-export interface Agreement {
+// Invoice interface for QR payment system
+export interface Invoice {
     id: string;
-    company: string;
-    companyWallet: string;
-    freelancer: string;
-    freelancerWallet: string;
-    type: 'one-time' | 'milestone' | 'monthly';  // Changed from 'payroll' to 'monthly'
-    status: 'created' | 'funded' | 'proposed' | 'accepted' | 'completed' | 'cancelled' | 'disputed';  // Updated to match contract
-    escrowAmount: number;
-    nextPayment: number;
-    nextPaymentDate: string;
+    invoiceNumber: string;
+    recipient: string;
+    recipientWallet: string;
+    amount: number;
+    currency: 'IDRX' | 'USDC';
+    description: string;
+    status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+    dueDate: string;
     createdAt: string;
-    lastActivity: string;
-    projectName: string;
-    description: string;
-    totalBudget: number;
-    amountReleased: number;
-    monthlyRate: number;
-    totalMilestones: number;
-    currentMilestone: number;
-    milestoneDeadlines: number[];
-    currentProofURI: string;
-    token: string;
-    arbitrator: string;
-    lastPaymentTime: number;  // Timestamp in seconds (for Monthly Payroll cycle check)
-    rejectionReason?: string;  // Current rejection reason (for one-time & milestone)
-    rejectionHistory?: RejectionHistory[];  // Historical rejections
+    paidAt?: string;
+    qrCodeData: string;
+    notes?: string;
 }
 
-// Rejection history for tracking work rejections
-export interface RejectionHistory {
-    timestamp: string;
-    reason: string;
-    milestoneNumber?: number;  // For milestone agreements
+// Employee interface for payroll management
+export interface Employee {
+    id: string;
+    name: string;
+    email: string;
+    walletAddress: string;
+    position: string;
+    department: string;
+    salary: number;
+    currency: 'IDRX' | 'USDC';
+    joinDate: string;
+    status: 'active' | 'inactive' | 'pending';
+    lastPayment?: string;
 }
 
-// Role-specific quick actions
-export interface QuickAction {
-    title: string;
+// Supplier interface for vendor management
+export interface Supplier {
+    id: string;
+    name: string;
+    email: string;
+    walletAddress: string;
+    company: string;
+    contactPerson: string;
+    category: string;
+    totalInvoices: number;
+    totalPaid: number;
+    status: 'active' | 'inactive';
+    createdAt: string;
+}
+
+// Payment transaction interface
+export interface Payment {
+    id: string;
+    type: 'invoice' | 'payroll' | 'supplier';
+    amount: number;
+    currency: 'IDRX' | 'USDC';
+    recipient: string;
+    recipientWallet: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    txHash?: string;
+    createdAt: string;
+    completedAt?: string;
     description: string;
-    icon: string;
-    href: string;
-    color: string;
+    invoiceId?: string;
+    employeeId?: string;
+    supplierId?: string;
+}
+
+// Payroll batch interface
+export interface PayrollBatch {
+    id: string;
+    name: string;
+    employees: Employee[];
+    totalAmount: number;
+    currency: 'IDRX' | 'USDC';
+    status: 'draft' | 'processing' | 'completed' | 'failed';
+    createdAt: string;
+    processedAt?: string;
+    txHashes?: string[];
+}
+
+// Dashboard statistics
+export interface DashboardStats {
+    totalInvoices: number;
+    totalInvoiceAmount: number;
+    pendingPayments: number;
+    pendingPaymentAmount: number;
+    activeEmployees: number;
+    monthlyPayrollAmount: number;
+    totalSuppliers: number;
+    monthlySpend: number;
 }
