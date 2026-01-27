@@ -1,214 +1,214 @@
-// Rivo Platform Testimonials
+// RIVO Platform Testimonials
 
 export const testimonials = [
   {
     quote:
-      "Rivo completely changed how we work with our global team. No more payment delays, no more trust issues. Everything is automated and transparent.",
+      "RIVO transformed our payroll process completely. Our remote Indonesian team gets paid in IDRX instantly, no more bank delays or expensive transfer fees.",
     name: "Sarah Chen",
-    role: "CEO, RemoteFirst Studios",
+    role: "CEO, TechStart Indonesia",
     avatar: "https://randomuser.me/api/portraits/women/44.jpg",
     rating: 5,
-    stats: ["$250K Escrowed", "45 Agreements", "100% On-time"],
+    stats: ["2.5B IDRX Processed", "45 Employees", "100% On-time"],
   },
   {
     quote:
-      "As a freelancer, I finally have peace of mind. The escrow system guarantees I'll get paid, and milestone approvals are automatic. No more chasing invoices.",
+      "As a supplier working with Indonesian startups, RIVO's QR invoice system is game-changing. I just scan, click pay, and get settled in IDRX immediately.",
     name: "Marcus Rodriguez",
-    role: "Full-Stack Developer",
+    role: "Overseas Supplier",
     avatar: "https://randomuser.me/api/portraits/men/36.jpg",
     rating: 5,
-    stats: ["$180K Earned", "32 Projects", "Zero Disputes"],
+    stats: ["1.8B IDRX Received", "32 Invoices", "Zero Errors"],
   },
   {
     quote:
-      "The programmable agreements are genius. We set the rules once, and everything executes automatically. It's like having a neutral third party that never sleeps.",
+      "The AI assistant makes creating payroll batches so easy. I just tell it who to pay and how much, and it handles everything. Perfect for our monthly operations.",
     name: "Priya Sharma",
-    role: "Product Manager, TechVentures",
+    role: "Finance Manager, Digital Agency",
     avatar: "https://randomuser.me/api/portraits/women/22.jpg",
     rating: 5,
-    stats: ["15 Team Members", "Monthly Payroll", "$500K+ Processed"],
+    stats: ["15 Team Members", "Monthly Payroll", "5B+ IDRX Processed"],
   },
   {
     quote:
-      "Rivo removed all the friction from international payments. Our freelancers get paid instantly in stablecoin, no bank delays, no currency conversion headaches.",
+      "No more currency conversion headaches or expensive international transfers. RIVO's IDRX settlement is transparent, fast, and perfect for our global suppliers.",
     name: "James Liu",
-    role: "CTO, GlobalDesign Co",
+    role: "CFO, Export Company",
     avatar: "https://randomuser.me/api/portraits/men/52.jpg",
     rating: 5,
-    stats: ["8 Countries", "Real-time Payments", "50+ Freelancers"],
+    stats: ["8 Countries", "Real-time Settlement", "50+ Suppliers"],
   },
   {
     quote:
-      "The transparency is incredible. Every milestone, every payment, every approval is recorded on-chain. Perfect for our compliance requirements.",
+      "On-chain transparency gives us complete audit trails for all payments. Our accounting team loves the automatic reconciliation and compliance features.",
     name: "Elena Popov",
-    role: "Finance Director, StartupHub",
+    role: "Finance Director, UKM Export",
     avatar: "https://randomuser.me/api/portraits/women/65.jpg",
     rating: 5,
-    stats: ["Full Audit Trail", "Compliance Ready", "$1M+ Volume"],
+    stats: ["Full Audit Trail", "Compliance Ready", "10B+ IDRX Volume"],
   },
 ];
 
-// Rivo Feature Categories
+// RIVO Feature Categories
 export const featureCategories = {
   forCompanies: [
-    "Create programmable work agreements",
-    "Lock funds in secure escrow",
-    "Approve milestones with one click",
-    "Track all agreements in one dashboard",
-    "Automatic dispute protection",
-    "Manage global teams seamlessly",
+    "Create and send QR invoices to suppliers",
+    "Process batch payroll in IDRX stablecoin",
+    "One-click payment execution",
+    "Track all payments in real-time",
+    "Automatic on-chain settlement",
+    "Manage global suppliers and employees",
   ],
-  forFreelancers: [
-    "Guaranteed payment via escrow",
-    "100% transparent terms",
-    "Instant stablecoin payouts",
-    "Non-custodial - you control your funds",
-    "Immutable work history proof",
-    "Built-in dispute protection",
+  forSuppliers: [
+    "Receive QR invoices instantly",
+    "Scan and pay with one click",
+    "Get paid in IDRX stablecoin",
+    "Real-time payment confirmation",
+    "Transparent transaction history",
+    "No wallet address copy-paste errors",
   ],
-  forTeams: [
-    "Multi-party agreement support",
-    "Automated team payroll",
-    "Collaborative milestone tracking",
-    "Shared escrow management",
-    "Team performance analytics",
+  forEmployees: [
+    "Receive salary in IDRX stablecoin",
+    "Instant payroll settlement",
+    "Transparent payment tracking",
+    "Mobile-friendly payment interface",
+    "On-chain payment verification",
     "Cross-border payment optimization",
   ],
 };
 
-// Rivo Core Features
+// RIVO Core Features
 export const coreFeatures = [
   {
-    title: "Programmable Work Agreements",
-    description: "Create smart contract-based work agreements with defined terms, milestones, and automatic execution. No manual intervention needed.",
-    icon: "contract",
+    title: "QR Invoice Generation",
+    description: "Create instant QR invoices for suppliers. Similar to QRIS experience - familiar UX for Indonesian users with zero learning curve.",
+    icon: "qr",
   },
   {
-    title: "Escrow & Fund Locking",
-    description: "Company deposits stablecoin into escrow. Funds locked on-chain, cannot be withdrawn unilaterally. Trust guaranteed by code.",
-    icon: "lock",
+    title: "One-Click IDRX Payment",
+    description: "Suppliers scan QR and pay instantly. No wallet address copying, no errors. Settlement happens on Base chain using IDRX stablecoin.",
+    icon: "payment",
   },
   {
-    title: "Milestone & Payroll Logic",
-    description: "Define milestones or monthly payroll. Payments auto-release upon completion or approval. Set it and forget it.",
-    icon: "checklist",
+    title: "Batch Payroll Processing",
+    description: "Create payroll batches for multiple employees. Add recipients and amounts, then execute all payments simultaneously with one click.",
+    icon: "batch",
   },
   {
-    title: "Global Stablecoin Payout",
-    description: "Freelancers receive stablecoin directly. Instant settlement, non-custodial, no bank needed. Work from anywhere, get paid anywhere.",
-    icon: "globe",
+    title: "Real-time Payment Status",
+    description: "Track all payments in real-time with on-chain verification. Transparent status updates and automatic confirmation for all parties.",
+    icon: "status",
   },
   {
-    title: "Activity & Proof Log",
-    description: "All submissions, approvals, and payments recorded on-chain. Transparent, immutable, and auditable. Your complete work history.",
-    icon: "history",
+    title: "AI Payment Assistant",
+    description: "Use natural language to create invoices and payroll. AI helps with data entry while keeping manual control over execution.",
+    icon: "ai",
   },
   {
-    title: "Rule-Based Enforcement",
-    description: "Auto-release if not approved within 7 days. Refund if no progress. Rules executed automatically. No human bias, no delays.",
-    icon: "gavel",
+    title: "Sponsored Gas & UX",
+    description: "Users don't need to worry about gas fees or blockchain complexity. Consumer-grade UX powered by Base and OnchainKit integration.",
+    icon: "gas",
   },
 ];
 
 // Role-specific testimonials
-export const freelancerTestimonials = [
+export const supplierTestimonials = [
   {
     quote:
-      "As a freelancer, I finally have peace of mind. The escrow system guarantees I'll get paid, and milestone approvals are automatic. No more chasing invoices.",
+      "Getting paid by Indonesian startups used to be complicated. Now with RIVO's QR invoices, I just scan and get paid in IDRX instantly. So simple!",
     name: "Marcus Rodriguez",
-    role: "Full-Stack Developer",
+    role: "Overseas Supplier",
     avatar: "https://randomuser.me/api/portraits/men/36.jpg",
     rating: 5,
-    stats: ["$180K Earned", "32 Projects", "Zero Disputes"],
+    stats: ["1.8B IDRX Received", "32 Invoices", "Zero Errors"],
   },
   {
     quote:
-      "Rivo removed all the friction from international payments. I get paid instantly in stablecoin, no bank delays, no currency conversion headaches.",
+      "No more dealing with Indonesian bank transfers or currency conversion. RIVO's IDRX payments are fast, transparent, and exactly what we needed.",
     name: "Priya Sharma",
-    role: "UI/UX Designer",
+    role: "Software Vendor",
     avatar: "https://randomuser.me/api/portraits/women/22.jpg",
     rating: 5,
-    stats: ["$95K Earned", "18 Projects", "100% On-time"],
+    stats: ["950M IDRX Received", "18 Clients", "100% On-time"],
   },
   {
     quote:
-      "The transparency is incredible. Every milestone, every payment, every approval is recorded on-chain. Perfect for building trust with clients.",
+      "The transparency is incredible. I can see payment status in real-time and have complete on-chain proof of every transaction. Perfect for our business.",
     name: "James Liu",
-    role: "Blockchain Developer",
+    role: "Equipment Supplier",
     avatar: "https://randomuser.me/api/portraits/men/52.jpg",
     rating: 5,
-    stats: ["$220K Earned", "45 Projects", "Full Audit Trail"],
+    stats: ["2.2B IDRX Received", "45 Orders", "Full Audit Trail"],
   },
 ];
 
 export const companyTestimonials = [
   {
     quote:
-      "Rivo completely changed how we work with our global team. No more payment delays, no more trust issues. Everything is automated and transparent.",
+      "RIVO transformed our supplier payment process. QR invoices are so familiar to our Indonesian team, and IDRX settlement eliminates all the banking friction.",
     name: "Sarah Chen",
-    role: "CEO, RemoteFirst Studios",
+    role: "CEO, TechStart Indonesia",
     avatar: "https://randomuser.me/api/portraits/women/44.jpg",
     rating: 5,
-    stats: ["$250K Escrowed", "45 Agreements", "100% On-time"],
+    stats: ["2.5B IDRX Processed", "45 Suppliers", "100% On-time"],
   },
   {
     quote:
-      "The programmable agreements are genius. We set the rules once, and everything executes automatically. It's like having a neutral third party that never sleeps.",
+      "Batch payroll with RIVO is incredible. Our entire remote team gets paid in IDRX with one click. No more expensive international transfers or delays.",
     name: "Elena Popov",
-    role: "Product Manager, TechVentures",
+    role: "Finance Director, Digital Agency",
     avatar: "https://randomuser.me/api/portraits/women/65.jpg",
     rating: 5,
-    stats: ["15 Team Members", "Monthly Payroll", "$500K+ Processed"],
+    stats: ["15 Employees", "Monthly Payroll", "5B+ IDRX Processed"],
   },
   {
     quote:
-      "Managing escrow and approvals used to be a nightmare. Rivo made it simple, secure, and completely transparent. Our freelancers love it too.",
+      "The AI assistant makes creating invoices and payroll so easy. I just tell it what I need, and it handles all the data entry. Saves hours every month.",
     name: "David Kim",
-    role: "CTO, GlobalDesign Co",
+    role: "CFO, Export Company",
     avatar: "https://randomuser.me/api/portraits/men/32.jpg",
     rating: 5,
-    stats: ["8 Countries", "Real-time Payments", "50+ Freelancers"],
+    stats: ["8 Countries", "Real-time Payments", "50+ Suppliers"],
   },
 ];
 
 // Role-specific quick actions
-export const freelancerQuickActions = [
+export const supplierQuickActions = [
   {
-    title: "View Earnings",
-    description: "Track your payment history",
-    icon: "wallet",
+    title: "Scan QR Invoice",
+    description: "Pay received invoices instantly",
+    icon: "qr",
     href: "/dashboard/payments",
     color: "success",
   },
   {
-    title: "My Agreements",
-    description: "Manage active work agreements",
-    icon: "briefcase",
-    href: "/dashboard/agreements",
+    title: "Payment History",
+    description: "View all IDRX transactions",
+    icon: "history",
+    href: "/dashboard/history",
     color: "warning",
   },
 ];
 
 export const companyQuickActions = [
   {
-    title: "Create Agreement",
-    description: "Start a new work agreement",
-    icon: "plus",
-    href: "/dashboard/agreements",
+    title: "Create Invoice",
+    description: "Generate QR invoice for suppliers",
+    icon: "invoice",
+    href: "/dashboard/invoices",
     color: "primary",
   },
   {
-    title: "Manage Escrow",
-    description: "Deposit and manage funds",
-    icon: "lock",
-    href: "/dashboard/escrow",
-    color: "warning",
+    title: "Process Payroll",
+    description: "Create and execute payroll batch",
+    icon: "payroll",
+    href: "/dashboard/payroll",
+    color: "success",
   },
   {
     title: "View Analytics",
-    description: "Track team performance",
+    description: "Track payment performance",
     icon: "chart",
     href: "/dashboard/analytics",
-    color: "success",
+    color: "warning",
   },
 ];
