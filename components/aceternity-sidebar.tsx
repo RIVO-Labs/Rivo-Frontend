@@ -12,24 +12,18 @@ import { RoleBadge } from '@/components/role-badge';
 import { useAuth } from '@/hooks/useAuth';
 import {
   RiHomeLine,
-  RiAddCircleLine,
-  RiMessage2Line,
+  RiQrCodeLine,
+  RiTeamLine,
+  RiStore2Line,
+  RiLineChartLine,
   RiSettings4Line,
   RiLogoutBoxLine,
   RiArrowLeftSLine,
   RiArrowRightSLine,
   RiInfoCardFill,
-  RiMapPinLine,
-  RiBarChartBoxLine,
-  RiLineChartLine,
-  RiDashboardLine,
-  RiDatabase2Line,
-  RiEyeLine,
-  RiReceiptLine,
-  RiFileList3Line,
-  RiLockLine,
-  RiTeamLine,
-  RiWalletLine,
+  RiMoneyDollarCircleLine,
+  RiFileTextLine,
+  RiUserLine,
 } from 'react-icons/ri';
 
 interface NavItem {
@@ -38,61 +32,47 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-// Freelancer navigation items
-const freelancerNavItems: NavItem[] = [
+// RIVO main navigation items
+const rivoNavItems: NavItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
     icon: <RiHomeLine className="h-5 w-5" />,
   },
   {
-    title: 'My Agreements',
-    href: '/dashboard/agreements',
-    icon: <RiFileList3Line className="h-5 w-5" />,
+    title: 'QR Invoices',
+    href: '/dashboard/invoices',
+    icon: <RiQrCodeLine className="h-5 w-5" />,
   },
   {
-    title: 'Messages',
-    href: '/dashboard/messages',
-    icon: <RiMessage2Line className="h-5 w-5" />,
+    title: 'Payroll',
+    href: '/dashboard/payroll',
+    icon: <RiTeamLine className="h-5 w-5" />,
   },
   {
-    title: 'Earnings',
-    href: '/dashboard/payments',
-    icon: <RiWalletLine className="h-5 w-5" />,
+    title: 'Suppliers',
+    href: '/dashboard/suppliers',
+    icon: <RiStore2Line className="h-5 w-5" />,
   },
   {
-    title: 'Profile',
-    href: '/dashboard/profile',
-    icon: <RiInfoCardFill className="h-5 w-5" />,
-  },
-];
-
-// Company navigation items
-const companyNavItems: NavItem[] = [
-  {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: <RiHomeLine className="h-5 w-5" />,
-  },
-  {
-    title: 'Team Agreements',
-    href: '/dashboard/agreements',
-    icon: <RiFileList3Line className="h-5 w-5" />,
-  },
-  {
-    title: 'Messages',
-    href: '/dashboard/messages',
-    icon: <RiMessage2Line className="h-5 w-5" />,
+    title: 'Employees',
+    href: '/dashboard/employees',
+    icon: <RiUserLine className="h-5 w-5" />,
   },
   {
     title: 'Payments',
     href: '/dashboard/payments',
-    icon: <RiReceiptLine className="h-5 w-5" />,
+    icon: <RiMoneyDollarCircleLine className="h-5 w-5" />,
   },
   {
-    title: 'Profile',
-    href: '/dashboard/profile',
-    icon: <RiInfoCardFill className="h-5 w-5" />,
+    title: 'Analytics',
+    href: '/dashboard/analytics',
+    icon: <RiLineChartLine className="h-5 w-5" />,
+  },
+  {
+    title: 'Settings',
+    href: '/dashboard/settings',
+    icon: <RiSettings4Line className="h-5 w-5" />,
   },
 ];
 
@@ -101,14 +81,13 @@ export function AceternitySidebar({ email }: { email?: string }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { logout, user } = useAuth();
-  const isFreelancer = user?.role === 'freelancer';
   const logoSrc = '/Rivologo.png';
 
   // Use user email if available, otherwise use prop
   const displayEmail = user?.email || email;
 
-  // Get role-specific navigation items
-  const navItems = isFreelancer ? freelancerNavItems : companyNavItems;
+  // Use unified RIVO navigation
+  const navItems = rivoNavItems;
 
   useEffect(() => {
     setIsMounted(true);
