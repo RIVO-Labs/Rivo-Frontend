@@ -12,23 +12,13 @@
 
     "ws:dev": "tsx watch server/ws-server.ts",
     "ws:start": "tsx server/ws-server.ts",
-    "dev:all": "concurrently \"npm run dev\" \"npm run ws:dev\"",
-
-    "postinstall": "prisma generate --schema prisma/schema.prisma",
-
-    "db:generate": "prisma generate --schema prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "dev:all": "concurrently \"npm run dev\" \"npm run ws:dev\""
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.1.0",
     "@metamask/eth-sig-util": "^7.0.3",
-    "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -75,9 +65,7 @@
     "next": "^16.1.1",
     "next-auth": "^4.24.11",
     "next-themes": "latest",
-    "pg": "^8.16.3",
     "pinata-web3": "^0.5.4",
-    "prisma": "^7.2.0",
     "react": "^18",
     "react-day-picker": "8.10.1",
     "react-dom": "^18",
@@ -109,7 +97,6 @@
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
     "@types/node": "^22",
-    "@types/pg": "^8.16.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/unist": "^3.0.3",
