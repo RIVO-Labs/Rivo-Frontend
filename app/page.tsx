@@ -21,6 +21,12 @@ import {
   RiShieldCheckLine,
   RiTimeLine,
   RiStarFill,
+  RiQrCodeLine,
+  RiMoneyDollarCircleLine,
+  RiTeamLine,
+  RiBarChartLine,
+  RiRobotLine,
+  RiGasStationLine,
   RiFileList3Line,
   RiLockLine,
   RiCalendarCheckLine,
@@ -28,12 +34,10 @@ import {
   RiHistoryLine,
   RiSettings4Line,
   RiAlertLine,
-  RiTeamLine,
   RiWalletLine,
   RiLineChartLine,
   RiShieldLine,
   RiThumbUpLine,
-  RiMoneyDollarCircleLine,
 } from "react-icons/ri";
 
 import Link from "next/link";
@@ -44,6 +48,12 @@ import { testimonials, coreFeatures, featureCategories } from "@/app/contants";
 import { FaqSection } from "@/components/faq-section";
 
 const featureIcons = {
+  qr: RiQrCodeLine,
+  payment: RiMoneyDollarCircleLine,
+  batch: RiTeamLine,
+  status: RiBarChartLine,
+  ai: RiRobotLine,
+  gas: RiGasStationLine,
   contract: RiFileList3Line,
   lock: RiLockLine,
   checklist: RiCalendarCheckLine,
@@ -130,9 +140,9 @@ export default function Home() {
                   transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
                 />
-                <RiShieldCheckLine className="mr-2 h-4 w-4 text-primary" />
-                Programmable Work Agreements
-                <RiGlobalLine className="ml-2 h-4 w-4 text-success" />
+                <RiQrCodeLine className="mr-2 h-4 w-4 text-primary" />
+                QR Invoice + IDRX Payments
+                <RiMoneyDollarCircleLine className="ml-2 h-4 w-4 text-success" />
               </Badge>
             </motion.div>
 
@@ -143,7 +153,7 @@ export default function Home() {
               className="mb-6 font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
             >
               <AnimatedGradientText>
-                Freedom of work, with trust locked and executed by code
+                Simplify Indonesian business payments with IDRX
               </AnimatedGradientText>
             </motion.h2>
 
@@ -153,7 +163,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mx-auto mb-8 max-w-3xl text-lg text-muted-foreground md:text-xl"
             >
-              Rivo builds programmable work agreements that automatically execute payroll and milestone payments for global freelance teams.
+              RIVO transforms payroll and supplier payments for Indonesian startups. Create QR invoices, process batch payroll, and settle instantly using IDRX stablecoin on Base.
             </motion.p>
 
             <motion.div
@@ -162,10 +172,10 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="flex flex-col gap-4 sm:flex-row sm:justify-center"
             >
-              <Link href="/dashboard/agreements">
+              <Link href="/dashboard/invoices">
                 <ShineButton className="w-full px-8 py-6 text-lg sm:w-auto">
-                  <RiFileList3Line className="mr-2 h-5 w-5" />
-                  Create Agreement
+                  <RiQrCodeLine className="mr-2 h-5 w-5" />
+                  Create QR Invoice
                 </ShineButton>
               </Link>
               <Link href="/dashboard">
@@ -174,7 +184,7 @@ export default function Home() {
                   variant="outline"
                   className="w-full border-primary/50 px-8 py-6 text-lg hover:bg-primary/10 sm:w-auto"
                 >
-                  Explore Platform
+                  Process Payroll
                   <RiArrowRightLine className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -193,13 +203,13 @@ export default function Home() {
               className="text-center mb-16"
             >
               <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-                How Rivo Works
+                How RIVO Works
               </Badge>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-4">
-                Six Features That Change Everything
+                Payment Infrastructure Built for Indonesian Business
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                From agreement creation to automatic payment, Rivo handles it all with smart contracts
+                From QR invoice generation to batch payroll execution, RIVO simplifies business payments with IDRX
               </p>
             </motion.div>
 
@@ -313,7 +323,7 @@ export default function Home() {
                 </Card>
               </motion.div>
 
-              {/* For Freelancers */}
+              {/* For Employees */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -325,14 +335,14 @@ export default function Home() {
                     <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success">
                       <RiWalletLine className="h-6 w-6" />
                     </div>
-                    <CardTitle className="text-2xl">For Freelancers</CardTitle>
+                    <CardTitle className="text-2xl">For Employees</CardTitle>
                     <CardDescription>
                       Get paid on time, every time. Guaranteed.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {featureCategories.forFreelancers.map((feature, idx) => (
+                      {featureCategories.forEmployees.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <RiCheckboxCircleLine className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
                           <span className="text-sm text-muted-foreground">{feature}</span>
@@ -343,7 +353,7 @@ export default function Home() {
                 </Card>
               </motion.div>
 
-              {/* For Teams */}
+              {/* For Suppliers */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -355,14 +365,14 @@ export default function Home() {
                     <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning">
                       <RiLineChartLine className="h-6 w-6" />
                     </div>
-                    <CardTitle className="text-2xl">For Teams</CardTitle>
+                    <CardTitle className="text-2xl">For Suppliers</CardTitle>
                     <CardDescription>
-                      Collaborative work agreements at scale
+                      Streamlined payments and vendor management
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {featureCategories.forTeams.map((feature, idx) => (
+                      {featureCategories.forSuppliers.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <RiCheckboxCircleLine className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
                           <span className="text-sm text-muted-foreground">{feature}</span>
