@@ -18,51 +18,51 @@ import Link from "next/link";
 
 const faqs = [
   {
-    question: "What is Rivo and how does it work?",
+    question: "What is RIVO and how does it work?",
     answer:
-      "Rivo is a platform for programmable work agreements on the Lisk blockchain. We create smart contracts that automatically execute payroll and milestone payments for global freelance teams. Your work agreement becomes code that enforces itself—no trust required.",
-    icon: "📝",
-  },
-  {
-    question: "How does escrow protect both parties?",
-    answer:
-      "When a company creates an agreement, they deposit funds into an escrow smart contract on Lisk. These funds are locked on-chain and cannot be withdrawn unilaterally. Freelancers are guaranteed payment when milestones are completed, and companies are protected because funds only release upon approval or predefined conditions.",
-    icon: "🔒",
-  },
-  {
-    question: "What happens if there's a dispute?",
-    answer:
-      "If a dispute occurs, the agreement enters a DISPUTED status and all funds remain locked on-chain. Neither party can withdraw funds unilaterally. Rivo doesn't judge who's right—we simply enforce the rules agreed upon at the start. Disputes can be resolved manually off-platform or through arbitration (future feature).",
-    icon: "⚖️",
-  },
-  {
-    question: "How do freelancers receive payment?",
-    answer:
-      "Freelancers receive payments in stablecoin (USDC) directly to their wallet. There's no bank transfer, no currency conversion, and no delays. Payments are settled instantly on the Lisk blockchain. The freelancer has full control of their funds—non-custodial and permissionless.",
+      "RIVO is a payment platform that simplifies account payable and payroll for Indonesian businesses. We enable companies to create QR invoices for suppliers and process batch payroll using IDRX stablecoin on Base. It's designed with familiar UX for Indonesian users while leveraging blockchain for transparency.",
     icon: "💰",
   },
   {
-    question: "Why use blockchain for work agreements?",
+    question: "How do QR invoices work?",
     answer:
-      "Blockchain provides trust minimization, automatic enforcement, transparency, and non-custodial funds. Traditional platforms control your money and can change rules. With Rivo, agreements execute automatically based on code, funds are held by smart contracts (not us), and all activity is recorded on-chain and immutable.",
-    icon: "⛓️",
+      "Companies create invoices with QR codes, similar to QRIS. Suppliers scan the QR code and click pay to settle using IDRX stablecoin. No need to copy wallet addresses or worry about errors. The familiar QR payment experience makes it easy for Indonesian suppliers to get paid quickly.",
+    icon: "📱",
   },
   {
-    question: "Is my money safe?",
+    question: "What is IDRX and why do you use it?",
     answer:
-      "Yes. Funds are locked in audited smart contracts on the Lisk blockchain. Rivo never holds your funds—they're secured by code, not by a company. You can verify the smart contract yourself. All transactions are transparent on-chain, and only authorized actions (based on agreement rules) can release funds.",
+      "IDRX is a Rupiah-pegged stablecoin, meaning 1 IDRX ≈ 1 IDR. We use IDRX because it's designed for Indonesian businesses, eliminating currency conversion complexity. Payments settle on-chain in a currency that Indonesian users understand and trust.",
+    icon: "🇮🇩",
+  },
+  {
+    question: "How does batch payroll work?",
+    answer:
+      "You can select multiple employees, set their salaries in IDRX, and execute all payments with one click. The system processes all transfers simultaneously on Base blockchain. Employees receive IDRX directly to their wallets instantly, with full transparency and on-chain verification.",
+    icon: "👥",
+  },
+  {
+    question: "Do users need to understand blockchain?",
+    answer:
+      "Not at all! RIVO is designed with consumer-grade UX. Gas fees are sponsored, wallets are handled seamlessly with OnchainKit, and the interface feels like familiar Indonesian payment apps. Users interact with IDRX payments without needing to understand the underlying blockchain technology.",
+    icon: "✨",
+  },
+  {
+    question: "Is RIVO secure and reliable?",
+    answer:
+      "Yes. RIVO operates on Base, a secure Layer 2 blockchain. All transactions are transparent, immutable, and verifiable on-chain. We use audited smart contracts and sponsor gas fees to ensure smooth operations. Your IDRX payments are settled directly between parties without RIVO holding funds.",
     icon: "🛡️",
   },
   {
-    question: "What if the company doesn't approve my milestone?",
+    question: "How does the AI assistant work?",
     answer:
-      "Agreements can include auto-release rules. For example: 'If no approval within 7 days, payment auto-releases.' This prevents companies from ghosting freelancers. Rules are coded into the smart contract at creation time and execute automatically—no human intervention needed.",
+      "The AI assistant helps you create invoices and payroll with natural language. For example, say 'Pay all developers 12M IDRX for January' and it will populate the form. However, AI only helps with data entry—you always have full manual control over payment execution.",
     icon: "⏰",
   },
   {
-    question: "Can I cancel an agreement?",
+    question: "Can I integrate RIVO with my existing systems?",
     answer:
-      "Agreement cancellation depends on the terms set at creation. Both parties can mutually agree to cancel and split remaining escrow. Unilateral cancellation may be allowed based on predefined conditions (e.g., no progress after 7 days). All rules are transparent and enforced by the smart contract.",
+      "RIVO is designed as a standalone payment solution for account payable and payroll. While we focus on simple UX, all transactions are recorded on-chain for easy reconciliation with your existing accounting systems. API integration is planned for future releases.",
     icon: "❌",
   },
 ];
@@ -88,7 +88,7 @@ export function FaqSection() {
             Frequently Asked Questions
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to know about Rivo's programmable work agreements and how blockchain-powered escrow protects both companies and freelancers.
+            Everything you need to know about RIVO's QR invoice system, IDRX payments, and how we're simplifying business payments for Indonesian companies.
           </p>
         </motion.div>
 
