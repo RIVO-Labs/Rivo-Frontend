@@ -1,9 +1,15 @@
 // RIVO platform types - Account Payable & Payroll solution
 
+export type UserRole = 'sme_owner' | 'vendor' | 'staff';
+
 export interface UserProfile {
     walletAddress?: string;
-    companyName?: string;
+    username?: string;
     email?: string;
+    firstName?: string;
+    lastName?: string;
+    companyName?: string;
+    role?: UserRole;
     createdAt?: string;
 }
 

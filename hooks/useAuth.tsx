@@ -13,7 +13,7 @@ interface User {
   address: string;
   username: string;
   email?: string;
-  role: 'freelancer' | 'company';
+  role: 'sme_owner' | 'vendor' | 'staff';
   roleSelected?: boolean;
   isProfileComplete?: boolean;
   createdAt?: string;
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isConnected && address) {
       const addressKey = address.toLowerCase();
       const storedRole = (localStorage.getItem(`role_${addressKey}`) ??
-        localStorage.getItem(`role_${address}`)) as 'freelancer' | 'company' | null;
+        localStorage.getItem(`role_${address}`)) as 'sme_owner' | 'vendor' | 'staff' | null;
 
       // Try to load from IPFS first if Pinata is configured
       if (isPinataConfigured()) {
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 address: address,
                 username: ipfsData.username || '',
                 email: ipfsData.email,
-                role: ipfsData.role || storedRole || 'freelancer',
+                role: ipfsData.role || storedRole || 'sme_owner',
                 roleSelected,
                 isProfileComplete: isComplete,
               });
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             address: address,
             username: userData.username || '',
             email: userData.email,
-            role: userData.role || storedRole || 'freelancer',
+            role: userData.role || storedRole || 'sme_owner',
             roleSelected,
             isProfileComplete: isComplete,
           });
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: address,
             address: address,
             username: '',
-            role: storedRole || 'freelancer',
+            role: storedRole || 'sme_owner',
             roleSelected: !!storedRole,
             isProfileComplete: false,
           });
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: address,
           address: address,
           username: '',
-          role: storedRole || 'freelancer',
+          role: storedRole || 'sme_owner',
           roleSelected: !!storedRole,
           isProfileComplete: false,
         });

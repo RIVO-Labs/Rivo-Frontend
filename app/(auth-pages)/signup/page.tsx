@@ -19,6 +19,7 @@ import {
   RiDashboardLine,
   RiCheckboxCircleLine,
   RiBriefcaseLine,
+  RiTeamLine,
 } from "react-icons/ri";
 import {
   Card,
@@ -41,7 +42,7 @@ interface ProfileData {
   username: string;
   firstName: string;
   lastName: string;
-  role: "freelancer" | "company";
+  role: "sme_owner" | "vendor" | "staff";
 }
 
 export default function SignupPage() {
@@ -50,7 +51,7 @@ export default function SignupPage() {
     username: "",
     firstName: "",
     lastName: "",
-    role: "freelancer",
+    role: "sme_owner",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,7 +69,7 @@ export default function SignupPage() {
         username: user.username || "",
         firstName: "",
         lastName: "",
-        role: user.role || "freelancer",
+        role: user.role || "sme_owner",
       });
     }
   }, [isConnected, user, isProfileComplete]);
@@ -360,28 +361,37 @@ export default function SignupPage() {
                     </Label>
                     <RadioGroup
                       value={profileData.role}
-                      onValueChange={(value: "freelancer" | "company") =>
+                      onValueChange={(value: "sme_owner" | "vendor" | "staff") =>
                         setProfileData({ ...profileData, role: value })
                       }
-                      className="grid grid-cols-2 gap-4"
+                      className="grid grid-cols-3 gap-3"
                     >
                       <Label
-                        htmlFor="freelancer"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                        htmlFor="sme_owner"
+                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
                       >
-                        <RadioGroupItem value="freelancer" id="freelancer" className="sr-only" />
-                        <RiUserLine className="mb-3 h-6 w-6" />
-                        <span className="font-medium">Freelancer</span>
-                        <span className="text-xs text-muted-foreground mt-1">Find work</span>
+                        <RadioGroupItem value="sme_owner" id="sme_owner" className="sr-only" />
+                        <RiBriefcaseLine className="mb-2 h-5 w-5" />
+                        <span className="font-medium text-sm">SME Owner</span>
+                        <span className="text-xs text-muted-foreground mt-1 text-center">Pay invoices & payroll</span>
                       </Label>
                       <Label
-                        htmlFor="company"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                        htmlFor="vendor"
+                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
                       >
-                        <RadioGroupItem value="company" id="company" className="sr-only" />
-                        <RiBriefcaseLine className="mb-3 h-6 w-6" />
-                        <span className="font-medium">Company</span>
-                        <span className="text-xs text-muted-foreground mt-1">Hire talent</span>
+                        <RadioGroupItem value="vendor" id="vendor" className="sr-only" />
+                        <RiUserLine className="mb-2 h-5 w-5" />
+                        <span className="font-medium text-sm">Vendor</span>
+                        <span className="text-xs text-muted-foreground mt-1 text-center">Receive invoice payments</span>
+                      </Label>
+                      <Label
+                        htmlFor="staff"
+                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                      >
+                        <RadioGroupItem value="staff" id="staff" className="sr-only" />
+                        <RiTeamLine className="mb-2 h-5 w-5" />
+                        <span className="font-medium text-sm">Staff/Agent</span>
+                        <span className="text-xs text-muted-foreground mt-1 text-center">Receive payroll</span>
                       </Label>
                     </RadioGroup>
                   </div>
@@ -419,19 +429,19 @@ export default function SignupPage() {
                   <div className="grid grid-cols-2 gap-3 text-xs text-gray-800 mt-4">
                     <div className="flex items-center gap-1">
                       <RiSecurePaymentLine className="h-4 w-4 text-primary" />
-                      Smart Contracts
+                      IDRX Payments
                     </div>
                     <div className="flex items-center gap-1">
                       <RiShieldCheckLine className="h-4 w-4 text-success" />
-                      Escrow Protected
+                      On-Chain Verified
                     </div>
                     <div className="flex items-center gap-1">
                       <RiDashboardLine className="h-4 w-4 text-primary" />
-                      Global Payments
+                      Batch Payroll
                     </div>
                     <div className="flex items-center gap-1">
                       <RiCheckboxCircleLine className="h-4 w-4 text-success" />
-                      Trustless
+                      Instant Settlement
                     </div>
                   </div>
                 </div>
