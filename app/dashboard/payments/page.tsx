@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,9 +17,19 @@ import {
   RiQrCodeLine,
   RiTeamLine,
 } from 'react-icons/ri';
+import { useAccount } from 'wagmi';
+import { useUserInvoiceEvents, useUserPayrollEvents } from '@/hooks/useRivoHubEvents';
 
-// Payment data - replace with API call
-const payments: any[] = [];
+interface Payment {
+  id: string;
+  type: 'payroll' | 'invoice';
+  status: 'completed';
+  description: string;
+  recipient: string;
+  amount: string;
+  date: string;
+  txHash: string;
+}
 
 const statusColors = {
   completed: "bg-green-500/10 text-green-700 border-green-500/20",
@@ -36,6 +46,46 @@ export default function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
 
+  const { address } = useAccount();
+  const { events: invoiceEvents, isLoading: invoicesLoading } = useUserInvoiceEvents(address);
+  const { events: payrollEvents, isLoading: payrollsLoading } = useUserPayrollEvents(address);
+
+  // Combine and map blockchain events to payment format
+  const payments = useMemo(() => {
+    const allPayments: Payment[] = [];
+
+    // Map invoice events
+    invoiceEvents.forEach((event) => {
+      allPayments.push({
+        id: event.invoiceId.slice(0, 10),
+        type: 'invoice',
+        status: 'completed',
+        description: `Invoice Payment`,
+        recipient: event.vendor,
+        amount: `${parseFloat(event.amountFormatted).toFixed(2)} IDRX`,
+        date: new Date(event.timestamp * 1000).toLocaleString(),
+        txHash: event.txHash,
+      });
+    });
+
+    // Map payroll events
+    payrollEvents.forEach((event) => {
+      allPayments.push({
+        id: event.txHash.slice(0, 10),
+        type: 'payroll',
+        status: 'completed',
+        description: `Payroll Payment to ${event.totalRecipients} employees`,
+        recipient: `${event.totalRecipients} recipients`,
+        amount: `${parseFloat(event.totalAmountFormatted).toFixed(2)} IDRX`,
+        date: new Date(event.timestamp * 1000).toLocaleString(),
+        txHash: event.txHash,
+      });
+    });
+
+    // Sort by timestamp descending (newest first) - already sorted by hooks
+    return allPayments;
+  }, [invoiceEvents, payrollEvents]);
+
   const filteredPayments = payments.filter((payment) => {
     const matchesSearch = payment.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          payment.recipient.toLowerCase().includes(searchTerm.toLowerCase());
@@ -43,15 +93,26 @@ export default function PaymentsPage() {
     return matchesSearch && matchesType;
   });
 
-  const totalPayments = payments.filter(p => p.status === 'completed').reduce((sum, p) => 
+  const totalPayments = payments.reduce((sum, p) =>
     sum + parseFloat(p.amount.replace(/[^\d.]/g, '')), 0
   );
 
-  const thisMonthPayments = payments.filter(p => 
-    p.status === 'completed' && p.date.startsWith('2024-01')
-  ).reduce((sum, p) => 
+  // Calculate this month payments
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const thisMonthPayments = payments.filter(p => {
+    const paymentDate = new Date(p.date);
+    return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+  }).reduce((sum, p) =>
     sum + parseFloat(p.amount.replace(/[^\d.]/g, '')), 0
   );
+
+  const isLoading = invoicesLoading || payrollsLoading;
+
+  // Open transaction in Lisk Sepolia block explorer
+  const openTxExplorer = (txHash: string) => {
+    window.open(`https://sepolia-blockscout.lisk.com/tx/${txHash}`, '_blank');
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -112,7 +173,13 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Payments</p>
-                <p className="text-2xl font-bold">{(totalPayments / 1000000).toFixed(1)}M IDRX</p>
+                <p className="text-2xl font-bold">
+                  {totalPayments >= 1000000
+                    ? `${(totalPayments / 1000000).toFixed(2)}M`
+                    : totalPayments >= 1000
+                    ? `${(totalPayments / 1000).toFixed(2)}K`
+                    : totalPayments.toFixed(2)} IDRX
+                </p>
               </div>
               <RiMoneyDollarCircleLine className="h-8 w-8 text-green-500" />
             </div>
@@ -124,7 +191,13 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">This Month</p>
-                <p className="text-2xl font-bold">{(thisMonthPayments / 1000000).toFixed(1)}M IDRX</p>
+                <p className="text-2xl font-bold">
+                  {thisMonthPayments >= 1000000
+                    ? `${(thisMonthPayments / 1000000).toFixed(2)}M`
+                    : thisMonthPayments >= 1000
+                    ? `${(thisMonthPayments / 1000).toFixed(2)}K`
+                    : thisMonthPayments.toFixed(2)} IDRX
+                </p>
               </div>
               <RiCheckboxCircleLine className="h-8 w-8 text-blue-500" />
             </div>
@@ -136,7 +209,7 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Transactions</p>
-                <p className="text-2xl font-bold">{payments.filter(p => p.status === 'completed').length}</p>
+                <p className="text-2xl font-bold">{payments.length}</p>
               </div>
               <RiTimeLine className="h-8 w-8 text-purple-500" />
             </div>
@@ -151,7 +224,29 @@ export default function PaymentsPage() {
         transition={{ delay: 0.3 }}
         className="space-y-4"
       >
-        {filteredPayments.map((payment, index) => (
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <p className="text-muted-foreground">Loading payments from blockchain...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : filteredPayments.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <RiMoneyDollarCircleLine className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No Payments Found</h3>
+              <p className="text-muted-foreground">
+                {payments.length === 0
+                  ? "No payment transactions yet. Start by paying an invoice or executing payroll."
+                  : "No payments match your search criteria."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredPayments.map((payment, index) => (
           <motion.div
             key={payment.id}
             initial={{ opacity: 0, x: -20 }}
@@ -199,7 +294,11 @@ export default function PaymentsPage() {
                         <span className="text-sm text-muted-foreground">
                           {payment.txHash.slice(0, 10)}...{payment.txHash.slice(-8)}
                         </span>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openTxExplorer(payment.txHash)}
+                        >
                           <RiExternalLinkLine className="h-4 w-4" />
                         </Button>
                       </div>
@@ -209,7 +308,8 @@ export default function PaymentsPage() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+          ))
+        )}
       </motion.div>
     </div>
   );

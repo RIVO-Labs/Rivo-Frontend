@@ -308,67 +308,22 @@ export default function InvoicesPage() {
       return;
     }
 
-    // Check if encryption key is available for encrypted logging
-    const encryptionKey = getEncryptionKey();
-    if (!encryptionKey) {
-      toast({
-        title: "Encryption Key Not Available",
-        description: "Please unlock your data storage first by clicking the Unlock button in the navbar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      // Encrypt payment record before sending to blockchain
-      const paymentRecord = {
-        invoiceId: formData.invoiceId,
-        vendorAddress: formData.vendorAddress,
-        amount: parseFloat(formData.amount),
-        description: formData.description,
-        paymentInitiatedAt: new Date().toISOString(),
-        payerAddress: address,
-        status: 'initiated',
-      };
-
-      const encryptedData = await encryptDataWithKey(paymentRecord, encryptionKey);
-
-      // Upload encrypted payment record to IPFS
-      const uploadResult = await uploadJSONToIPFS({
-        encrypted: encryptedData,
-        metadata: {
-          type: 'payment_record',
-          timestamp: Date.now(),
-          walletAddress: address,
-          invoiceId: formData.invoiceId,
-        },
-      });
-
-      const cid = uploadResult.cid || uploadResult;
-
-      // Store payment record mapping
-      const paymentMappingKey = `payment_${address}_${Date.now()}`;
-      const paymentMapping = {
-        cid,
-        timestamp: Date.now(),
-        walletAddress: address,
-        invoiceId: formData.invoiceId,
-        vendorAddress: formData.vendorAddress,
-        amount: formData.amount,
-      };
-      localStorage.setItem(paymentMappingKey, JSON.stringify(paymentMapping));
-
-      // Proceed with payment
-      payInvoice(
+      // Directly call smart contract payInvoice
+      // Payment record will be permanently stored on blockchain via InvoicePaid event
+      // No need for IPFS or localStorage - blockchain is the single source of truth
+      await payInvoice(
         formData.invoiceId,
         formData.vendorAddress as `0x${string}`,
         formData.amount
       );
+
+      // Event will be automatically fetched by useUserInvoiceEvents hook
     } catch (error) {
-      console.error("Error preparing payment:", error);
+      console.error("Payment failed:", error);
       toast({
-        title: "Error",
-        description: "Failed to prepare payment. Please try again.",
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     }
