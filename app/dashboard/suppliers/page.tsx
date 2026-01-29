@@ -23,48 +23,8 @@ import {
   RiHistoryLine,
 } from "react-icons/ri";
 
-// Dummy supplier data
-const suppliers = [
-  {
-    id: "SUP-001",
-    name: "PT Global Supplies",
-    email: "contact@globalsupplies.co.id",
-    phone: "+62 21 1234 5678",
-    address: "Jakarta, Indonesia",
-    category: "Office Equipment",
-    wallet: "0x1234...5678",
-    totalInvoices: 12,
-    totalAmount: "125.500.000 IDRX",
-    lastTransaction: "2024-01-21",
-    status: "active",
-  },
-  {
-    id: "SUP-002",
-    name: "Digital Marketing Pro",
-    email: "hello@digitalmarketing.com",
-    phone: "+1 555 0123",
-    address: "San Francisco, USA",
-    category: "Marketing Services",
-    wallet: "0xabcd...efgh",
-    totalInvoices: 8,
-    totalAmount: "67.250.000 IDRX",
-    lastTransaction: "2024-01-20",
-    status: "active",
-  },
-  {
-    id: "SUP-003",
-    name: "Software Vendor Inc",
-    email: "support@softwarevendor.com",
-    phone: "+44 20 7123 4567",
-    address: "London, UK",
-    category: "Software Licenses",
-    wallet: "0x5678...1234",
-    totalInvoices: 5,
-    totalAmount: "89.750.000 IDRX",
-    lastTransaction: "2024-01-15",
-    status: "active",
-  },
-];
+// Supplier data - replace with API call
+const suppliers: any[] = [];
 
 const categoryColors = {
   "Office Equipment": "bg-blue-500/10 text-blue-700 border-blue-500/20",
@@ -215,7 +175,7 @@ export default function SuppliersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
-                <p className="text-2xl font-bold">282.5M IDRX</p>
+                <p className="text-2xl font-bold">0 IDRX</p>
               </div>
               <RiMoneyDollarCircleLine className="h-8 w-8 text-green-500" />
             </div>
@@ -227,7 +187,7 @@ export default function SuppliersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Invoices</p>
-                <p className="text-2xl font-bold">25</p>
+                <p className="text-2xl font-bold">0</p>
               </div>
               <RiQrCodeLine className="h-8 w-8 text-purple-500" />
             </div>

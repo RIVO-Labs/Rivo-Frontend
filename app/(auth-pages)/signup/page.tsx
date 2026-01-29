@@ -58,8 +58,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { address, isConnected } = useAccount();
-  const { user, isProfileComplete, isLoading } = useAuth();
-  const { disconnect } = useDisconnect();
+  const { user, isProfileComplete, isLoading, refreshUser } = useAuth();
 
   // Pre-fill form if user already connected but profile incomplete
   useEffect(() => {
@@ -111,13 +110,19 @@ export default function SignupPage() {
       return;
     }
 
-    await saveUserProfile();
-    disconnect();
-    router.push("/");
+    const success = await saveUserProfile();
+
+    if (success) {
+      // Refresh user data to sync the newly created profile
+      await refreshUser();
+
+      // Redirect to dashboard - user is now logged in automatically
+      router.push("/dashboard");
+    }
   };
 
-  const saveUserProfile = async () => {
-    if (!address) return;
+  const saveUserProfile = async (): Promise<boolean> => {
+    if (!address) return false;
 
     // Check if wallet is already registered (check both IPFS and localStorage)
     const addressKey = address.toLowerCase();
@@ -136,7 +141,7 @@ export default function SignupPage() {
           variant: "destructive",
         });
 
-        return;
+        return false;
       } catch (error) {
         console.error('Failed to parse existing user data:', error);
       }
@@ -204,6 +209,8 @@ export default function SignupPage() {
         });
       }
 
+      return true;
+
     } catch (error) {
       console.error("Error saving profile:", error);
 
@@ -213,6 +220,7 @@ export default function SignupPage() {
         variant: "destructive",
       });
 
+      return true; // Still return true as profile is saved locally
     }
   };
 

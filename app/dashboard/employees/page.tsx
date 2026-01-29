@@ -23,65 +23,8 @@ import {
   RiTimeLine,
 } from "react-icons/ri";
 
-// Dummy employee data
-const employees = [
-  {
-    id: "EMP-001",
-    name: "Sarah Johnson",
-    email: "sarah@company.com",
-    role: "Frontend Developer",
-    department: "Engineering",
-    location: "Jakarta, Indonesia",
-    joinDate: "2023-03-15",
-    wallet: "0x1234567890abcdef1234567890abcdef12345678",
-    salary: "12.000.000 IDRX",
-    paymentStatus: "paid",
-    lastPaid: "2024-01-01",
-    avatar: "SJ",
-  },
-  {
-    id: "EMP-002",
-    name: "Ahmad Rahman",
-    email: "ahmad@company.com", 
-    role: "Backend Developer",
-    department: "Engineering",
-    location: "Bandung, Indonesia",
-    joinDate: "2023-01-10",
-    wallet: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-    salary: "13.500.000 IDRX",
-    paymentStatus: "paid",
-    lastPaid: "2024-01-01",
-    avatar: "AR",
-  },
-  {
-    id: "EMP-003", 
-    name: "Lisa Chen",
-    email: "lisa@company.com",
-    role: "UI/UX Designer",
-    department: "Design",
-    location: "Surabaya, Indonesia",
-    joinDate: "2023-05-20",
-    wallet: "0x567890567890567890567890567890567890567",
-    salary: "10.500.000 IDRX",
-    paymentStatus: "pending",
-    lastPaid: "2023-12-01",
-    avatar: "LC",
-  },
-  {
-    id: "EMP-004",
-    name: "Michael Torres",
-    email: "michael@company.com",
-    role: "DevOps Engineer", 
-    department: "Engineering",
-    location: "Yogyakarta, Indonesia",
-    joinDate: "2023-08-01",
-    wallet: "0x123456123456123456123456123456123456123",
-    salary: "14.000.000 IDRX",
-    paymentStatus: "paid",
-    lastPaid: "2024-01-01",
-    avatar: "MT",
-  },
-];
+// Employee data - replace with API call
+const employees: any[] = [];
 
 const departmentColors = {
   "Engineering": "bg-blue-500/10 text-blue-700 border-blue-500/20",

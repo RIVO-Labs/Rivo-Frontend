@@ -18,49 +18,8 @@ import {
   RiTeamLine,
 } from 'react-icons/ri';
 
-// Dummy payment data
-const payments = [
-  {
-    id: "PAY-001",
-    type: "payroll",
-    description: "Monthly Payroll - January 2024",
-    recipient: "15 Employees",
-    amount: "187.500.000 IDRX",
-    status: "completed",
-    date: "2024-01-01",
-    txHash: "0x1234567890abcdef1234567890abcdef12345678",
-  },
-  {
-    id: "PAY-002", 
-    type: "invoice",
-    description: "Office Equipment Invoice",
-    recipient: "PT Global Supplies",
-    amount: "15.500.000 IDRX",
-    status: "completed",
-    date: "2024-01-21",
-    txHash: "0xabcdef1234567890abcdef1234567890abcdef12",
-  },
-  {
-    id: "PAY-003",
-    type: "invoice", 
-    description: "Marketing Campaign Payment",
-    recipient: "Digital Marketing Agency",
-    amount: "8.750.000 IDRX",
-    status: "pending",
-    date: "2024-01-22",
-    txHash: null,
-  },
-  {
-    id: "PAY-004",
-    type: "payroll",
-    description: "Monthly Payroll - December 2023", 
-    recipient: "14 Employees",
-    amount: "175.000.000 IDRX",
-    status: "completed",
-    date: "2023-12-01",
-    txHash: "0x567890abcdef567890abcdef567890abcdef5678",
-  },
-];
+// Payment data - replace with API call
+const payments: any[] = [];
 
 const statusColors = {
   completed: "bg-green-500/10 text-green-700 border-green-500/20",

@@ -35,112 +35,12 @@ import { cn } from '@/lib/utils';
 export default function AnalyticsPage() {
   const [timeRange] = useState('7d');
 
-  const stats = [
-    {
-      title: 'Total Escrow Volume',
-      value: '$845,420',
-      change: '+23.5%',
-      trend: 'up',
-      icon: DollarSign,
-      description: 'All-time platform volume',
-      color: 'from-emerald-500 to-teal-600',
-    },
-    {
-      title: 'Active Projects',
-      value: '142',
-      change: '+18',
-      trend: 'up',
-      icon: Briefcase,
-      description: 'Currently in progress',
-      color: 'from-blue-500 to-cyan-600',
-    },
-    {
-      title: 'Happy Freelancers',
-      value: '1,847',
-      change: '+12.5%',
-      trend: 'up',
-      icon: Users,
-      description: 'Verified professionals',
-      color: 'from-purple-500 to-pink-600',
-    },
-    {
-      title: 'Success Rate',
-      value: '98.4%',
-      change: '+2.1%',
-      trend: 'up',
-      icon: Trophy,
-      description: 'Completed without disputes',
-      color: 'from-orange-500 to-red-600',
-    },
-  ];
-
-  const topFreelancers = [
-    { name: 'Sarah Chen', initials: 'SC', earnings: '$45,230', projects: 28, rating: 4.9, specialty: 'Full-Stack Dev', growth: '+15%' },
-    { name: 'Alex Kumar', initials: 'AK', earnings: '$38,940', projects: 42, rating: 4.8, specialty: 'UI/UX Design', growth: '+22%' },
-    { name: 'Maria Garcia', initials: 'MG', earnings: '$32,100', projects: 19, rating: 5.0, specialty: 'Blockchain Dev', growth: '+31%' },
-    { name: 'James Wilson', initials: 'JW', earnings: '$28,750', projects: 35, rating: 4.7, specialty: 'Smart Contracts', growth: '+8%' },
-    { name: 'Li Wei', initials: 'LW', earnings: '$25,630', projects: 24, rating: 4.9, specialty: 'Data Science', growth: '+18%' },
-  ];
-
-  const topCompanies = [
-    { name: 'TechCorp Inc.', initials: 'TC', spent: '$125,420', projects: 15, rating: 4.9, industry: 'SaaS' },
-    { name: 'StartupXYZ', initials: 'SX', spent: '$98,340', projects: 22, rating: 4.8, industry: 'DeFi' },
-    { name: 'CryptoVentures', initials: 'CV', spent: '$87,200', projects: 12, rating: 5.0, industry: 'Web3' },
-    { name: 'DesignHub Co.', initials: 'DH', spent: '$76,850', projects: 28, rating: 4.7, industry: 'Creative' },
-  ];
-
-  const recentMilestones = [
-    { 
-      project: 'E-Commerce Platform Redesign', 
-      freelancer: 'Sarah Chen',
-      company: 'TechCorp Inc.',
-      amount: '$12,500', 
-      status: 'completed',
-      time: '2 hours ago',
-      milestone: 'Final Deployment',
-      progress: 100
-    },
-    { 
-      project: 'DeFi Smart Contract Audit', 
-      freelancer: 'James Wilson',
-      company: 'CryptoVentures',
-      amount: '$8,200', 
-      status: 'in-review',
-      time: '5 hours ago',
-      milestone: 'Security Review',
-      progress: 85
-    },
-    { 
-      project: 'Mobile App UI/UX Design', 
-      freelancer: 'Alex Kumar',
-      company: 'StartupXYZ',
-      amount: '$6,750', 
-      status: 'in-progress',
-      time: '1 day ago',
-      milestone: 'Prototype Phase 2',
-      progress: 60
-    },
-    { 
-      project: 'Data Analytics Dashboard', 
-      freelancer: 'Li Wei',
-      company: 'DesignHub Co.',
-      amount: '$9,400', 
-      status: 'pending',
-      time: '2 days ago',
-      milestone: 'Data Integration',
-      progress: 40
-    },
-  ];
-
-  const weeklyData = [
-    { day: 'Mon', volume: 45000, projects: 12 },
-    { day: 'Tue', volume: 52000, projects: 15 },
-    { day: 'Wed', volume: 48000, projects: 11 },
-    { day: 'Thu', volume: 61000, projects: 18 },
-    { day: 'Fri', volume: 55000, projects: 14 },
-    { day: 'Sat', volume: 38000, projects: 8 },
-    { day: 'Sun', volume: 42000, projects: 9 },
-  ];
+  // Analytics data - replace with API call
+  const stats: any[] = [];
+  const topFreelancers: any[] = [];
+  const topCompanies: any[] = [];
+  const recentMilestones: any[] = [];
+  const weeklyData: any[] = [];
 
   const maxVolume = Math.max(...weeklyData.map(d => d.volume));
 
