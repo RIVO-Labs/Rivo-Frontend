@@ -17,4 +17,5 @@ export const config = defaultConfig({
   xellarAppId,
   xellarEnv,
   chains: [liskSepolia],
+  enableEmbeddedWallet: true,
 }) as Config;

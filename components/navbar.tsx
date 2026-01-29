@@ -6,7 +6,7 @@ import { ModeToggle } from '@/components/mode-toggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnlock } from '@/hooks/useUnlock';
 import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
-import { RiLockLine, RiUnlockLine } from 'react-icons/ri';
+import { RiLockLine, RiLockUnlockLine } from 'react-icons/ri';
 
 export function Navbar() {
   const { user, logout, isAuthenticated, isProfileComplete } = useAuth();
@@ -100,7 +100,7 @@ export function Navbar() {
                       title="Click to lock encryption (key will persist until logout)"
                       className="text-green-600 hover:text-green-700 border-green-600/20"
                     >
-                      <RiUnlockLine className="h-4 w-4 mr-1" />
+                      <RiLockUnlockLine className="h-4 w-4 mr-1" />
                       Unlocked
                     </Button>
                   ) : (
