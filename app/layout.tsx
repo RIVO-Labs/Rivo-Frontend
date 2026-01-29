@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/navbar";
 import { AuthProvider } from "@/hooks/useAuth";
+import { UnlockProvider } from "@/hooks/useUnlock";
 import { Web3Provider } from "@/components/providers/Web3Provider";
 
 const fontSans = Poppins({
@@ -57,9 +58,11 @@ export default function RootLayout({
         >
           <Web3Provider>
             <AuthProvider>
-              <Navbar />
-              {children}
-              <Toaster />
+              <UnlockProvider>
+                <Navbar />
+                {children}
+                <Toaster />
+              </UnlockProvider>
             </AuthProvider>
           </Web3Provider>
         </ThemeProvider>

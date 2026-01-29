@@ -4,11 +4,24 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
+import { useRole } from "@/hooks/useRole";
+import { useUnlock } from "@/hooks/useUnlock";
+import { useFetchFromIPFS } from "@/hooks/useFetchFromIPFS";
+import { Permission } from "@/lib/roles";
+import { encryptDataWithKey } from "@/lib/ipfs/aes-encryption";
+import { uploadJSONToIPFS } from "@/lib/ipfs/upload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRivoHub } from "@/hooks/useRivoHub";
 import { useIDRXBalance, useIDRXAllowance, useApproveIDRX, hasSufficientAllowance, formatIDRX } from "@/hooks/useIDRXApproval";
@@ -35,6 +48,12 @@ export default function InvoicesPage() {
   const { address } = useAccount();
   const { toast } = useToast();
 
+  // Check role and permissions
+  const { hasPermission: checkPermission } = useRole();
+  const canGenerateInvoice = checkPermission(Permission.GENERATE_QR_INVOICE);
+  const canPayInvoice = checkPermission(Permission.PAY_INVOICE);
+  const { getEncryptionKey, isUnlocked } = useUnlock();
+
   // Hooks for smart contract interactions
   const { payInvoice, isPending, isConfirming, isSuccess, hash } = useRivoHub();
   const { balance, balanceFormatted, refetch: refetchBalance } = useIDRXBalance(address);
@@ -44,7 +63,15 @@ export default function InvoicesPage() {
 
   // Form states
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [invoiceFormMode, setInvoiceFormMode] = useState<'generate' | 'pay'>('pay');
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEncrypting, setIsEncrypting] = useState(false);
+  
+  // Modal for viewing QR invoice details
+  const [selectedInvoiceData, setSelectedInvoiceData] = useState<any>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedCID, setSelectedCID] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
     invoiceId: "",
     vendorAddress: "",
@@ -52,6 +79,13 @@ export default function InvoicesPage() {
     description: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [permissionError, setPermissionError] = useState<string>("");
+  
+  // Hook for fetching QR invoice from IPFS
+  const { data: decryptedQRInvoice, isLoading: isFetchingDetails, error: fetchError, fetch: fetchQRInvoiceDetails } = useFetchFromIPFS(
+    selectedCID,
+    isUnlocked ? getEncryptionKey() : null
+  );
 
   // Check if IDRX is approved
   const isApproved = useMemo(() => {
@@ -126,9 +160,144 @@ export default function InvoicesPage() {
     approve(); // Approve unlimited
   };
 
-  // Handle pay invoice
-  const handlePayInvoice = () => {
+  // Handle generate QR invoice
+  const handleGenerateQRInvoice = async () => {
     if (!validateForm()) return;
+
+    // Check permission
+    if (!canGenerateInvoice) {
+      setPermissionError("Anda tidak memiliki izin untuk membuat QR invoice. Hanya SME Owner atau Supplier yang dapat melakukan ini.");
+      return;
+    }
+
+    // Check if encryption key is available
+    const encryptionKey = getEncryptionKey();
+    if (!encryptionKey) {
+      toast({
+        title: "Encryption Key Not Available",
+        description: "Please unlock your data storage first by clicking the Unlock button in the navbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEncrypting(true);
+    try {
+      const qrInvoiceData = {
+        invoiceId: formData.invoiceId,
+        vendorAddress: formData.vendorAddress,
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        createdAt: new Date().toISOString(),
+        createdBy: address,
+        status: 'generated',
+        id: Math.random().toString(36).substr(2, 9),
+      };
+
+      // Encrypt QR invoice data
+      const encryptedData = await encryptDataWithKey(qrInvoiceData, encryptionKey);
+
+      // Upload encrypted data to IPFS
+      const uploadResult = await uploadJSONToIPFS({
+        encrypted: encryptedData,
+        metadata: {
+          type: 'qr_invoice',
+          timestamp: Date.now(),
+          walletAddress: address,
+          invoiceId: formData.invoiceId,
+        },
+      });
+
+      const cid = uploadResult.cid || uploadResult;
+
+      // Store CID mapping to localStorage
+      const mappingKey = `qr_invoice_${address}_${Date.now()}`;
+      const mapping = {
+        cid,
+        timestamp: Date.now(),
+        walletAddress: address,
+        invoiceId: qrInvoiceData.id,
+        invoiceNumber: formData.invoiceId,
+      };
+      localStorage.setItem(mappingKey, JSON.stringify(mapping));
+
+      // Also store in wallet IPFS mapping for retrieval
+      const qrInvoiceList = JSON.parse(localStorage.getItem(`qr_invoices_${address}`) || '[]');
+      qrInvoiceList.push(mapping);
+      localStorage.setItem(`qr_invoices_${address}`, JSON.stringify(qrInvoiceList));
+
+      // Reset form
+      setFormData({
+        invoiceId: "",
+        vendorAddress: "",
+        amount: "",
+        description: "",
+      });
+      setFormErrors({});
+      setPermissionError("");
+      setShowCreateForm(false);
+
+      toast({
+        title: "QR Invoice Generated Successfully",
+        description: `QR Invoice "${formData.invoiceId}" has been encrypted and stored to IPFS.`,
+      });
+    } catch (error) {
+      console.error("Error generating QR invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate QR invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEncrypting(false);
+    }
+  };
+
+  // Handle viewing QR invoice full details from IPFS
+  const handleViewQRInvoice = async (invoiceId: string) => {
+    try {
+      const storedQRInvoices = localStorage.getItem(`qr_invoices_${address}`);
+      if (storedQRInvoices) {
+        const mappings = JSON.parse(storedQRInvoices);
+        const invoiceMapping = mappings.find((m: any) => m.invoiceNumber === invoiceId);
+        
+        if (invoiceMapping) {
+          setSelectedCID(invoiceMapping.cid);
+          setShowDetailsModal(true);
+        } else {
+          toast({
+            title: "Not Found",
+            description: "QR Invoice data not found in storage",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error viewing QR invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to view QR invoice details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Trigger fetch when modal opens with CID
+  useEffect(() => {
+    if (showDetailsModal && selectedCID && isUnlocked) {
+      fetchQRInvoiceDetails();
+    }
+  }, [showDetailsModal, selectedCID]);
+
+  // Handle pay invoice
+  const handlePayInvoice = async () => {
+    if (!validateForm()) return;
+
+    // Check permission
+    if (!canPayInvoice) {
+      setPermissionError("Anda tidak memiliki izin untuk membayar invoice. Hanya SME Owner yang dapat melakukan ini.");
+      return;
+    }
 
     if (!isApproved) {
       toast({
@@ -139,11 +308,70 @@ export default function InvoicesPage() {
       return;
     }
 
-    payInvoice(
-      formData.invoiceId,
-      formData.vendorAddress as `0x${string}`,
-      formData.amount
-    );
+    // Check if encryption key is available for encrypted logging
+    const encryptionKey = getEncryptionKey();
+    if (!encryptionKey) {
+      toast({
+        title: "Encryption Key Not Available",
+        description: "Please unlock your data storage first by clicking the Unlock button in the navbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Encrypt payment record before sending to blockchain
+      const paymentRecord = {
+        invoiceId: formData.invoiceId,
+        vendorAddress: formData.vendorAddress,
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        paymentInitiatedAt: new Date().toISOString(),
+        payerAddress: address,
+        status: 'initiated',
+      };
+
+      const encryptedData = await encryptDataWithKey(paymentRecord, encryptionKey);
+
+      // Upload encrypted payment record to IPFS
+      const uploadResult = await uploadJSONToIPFS({
+        encrypted: encryptedData,
+        metadata: {
+          type: 'payment_record',
+          timestamp: Date.now(),
+          walletAddress: address,
+          invoiceId: formData.invoiceId,
+        },
+      });
+
+      const cid = uploadResult.cid || uploadResult;
+
+      // Store payment record mapping
+      const paymentMappingKey = `payment_${address}_${Date.now()}`;
+      const paymentMapping = {
+        cid,
+        timestamp: Date.now(),
+        walletAddress: address,
+        invoiceId: formData.invoiceId,
+        vendorAddress: formData.vendorAddress,
+        amount: formData.amount,
+      };
+      localStorage.setItem(paymentMappingKey, JSON.stringify(paymentMapping));
+
+      // Proceed with payment
+      payInvoice(
+        formData.invoiceId,
+        formData.vendorAddress as `0x${string}`,
+        formData.amount
+      );
+    } catch (error) {
+      console.error("Error preparing payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare payment. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Calculate statistics from events
@@ -204,14 +432,31 @@ export default function InvoicesPage() {
             Create and manage supplier invoices with blockchain payments
           </p>
         </div>
-        <Button
-          onClick={() => setShowCreateForm(true)}
-          className="mt-4 md:mt-0"
-          disabled={!address}
-        >
-          <RiAddLine className="mr-2 h-4 w-4" />
-          Pay Invoice
-        </Button>
+        <div className="flex gap-2 mt-4 md:mt-0">
+          <Button
+            onClick={() => {
+              setPermissionError("");
+              setInvoiceFormMode('generate');
+              setShowCreateForm(true);
+            }}
+            disabled={!address || !canGenerateInvoice}
+            variant="outline"
+          >
+            <RiQrCodeLine className="mr-2 h-4 w-4" />
+            Generate QR Invoice
+          </Button>
+          <Button
+            onClick={() => {
+              setPermissionError("");
+              setInvoiceFormMode('pay');
+              setShowCreateForm(true);
+            }}
+            disabled={!address || !canPayInvoice}
+          >
+            <RiAddLine className="mr-2 h-4 w-4" />
+            Pay Invoice
+          </Button>
+        </div>
       </motion.div>
 
       {/* Wallet Status */}
@@ -261,7 +506,7 @@ export default function InvoicesPage() {
         </motion.div>
       )}
 
-      {/* Pay Invoice Form */}
+      {/* Generate QR Invoice or Pay Invoice Form */}
       {showCreateForm && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -269,11 +514,19 @@ export default function InvoicesPage() {
           className="bg-card border rounded-lg p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Pay Invoice</h2>
+            <h2 className="text-xl font-semibold">
+              {invoiceFormMode === 'generate' ? 'Generate QR Invoice' : 'Pay Invoice'}
+            </h2>
             <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
               ×
             </Button>
           </div>
+
+          {permissionError && (
+            <div className="mb-4 p-3 bg-red-500/10 text-red-700 border border-red-500/20 rounded-md text-sm">
+              {permissionError}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -309,7 +562,9 @@ export default function InvoicesPage() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="vendorAddress">Vendor Wallet Address</Label>
+              <Label htmlFor="vendorAddress">
+                {invoiceFormMode === 'generate' ? 'Vendor/Buyer Wallet Address' : 'Vendor Wallet Address'}
+              </Label>
               <Input
                 id="vendorAddress"
                 placeholder="0x..."
@@ -337,23 +592,46 @@ export default function InvoicesPage() {
           </div>
 
           <div className="flex gap-2 mt-4">
-            <Button
-              onClick={handlePayInvoice}
-              disabled={isPending || isConfirming || !isApproved}
-            >
-              {isPending || isConfirming ? (
-                <>
-                  <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <RiMoneyDollarCircleLine className="mr-2 h-4 w-4" />
-                  Pay Invoice
-                </>
-              )}
-            </Button>
-            <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+            {invoiceFormMode === 'generate' ? (
+              <Button onClick={handleGenerateQRInvoice} disabled={isEncrypting}>
+                {isEncrypting ? (
+                  <>
+                    <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+                    Encrypting & Uploading...
+                  </>
+                ) : (
+                  <>
+                    <RiQrCodeLine className="mr-2 h-4 w-4" />
+                    Generate QR Invoice
+                  </>
+                )}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={!isApproved ? handleApprove : handlePayInvoice}
+                  disabled={isPending || isConfirming || isEncrypting}
+                >
+                  {isEncrypting || isPending || isConfirming ? (
+                    <>
+                      <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+                      {isEncrypting ? 'Preparing Payment...' : 'Processing...'}
+                    </>
+                  ) : !isApproved ? (
+                    <>
+                      <RiCheckLine className="mr-2 h-4 w-4" />
+                      Approve IDRX
+                    </>
+                  ) : (
+                    <>
+                      <RiMoneyDollarCircleLine className="mr-2 h-4 w-4" />
+                      Pay Invoice
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={() => setShowCreateForm(false)} disabled={isEncrypting || isPending || isConfirming}>
               Cancel
             </Button>
           </div>
@@ -499,6 +777,15 @@ export default function InvoicesPage() {
 
                     <div className="flex gap-2">
                       <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleViewQRInvoice(invoice.invoiceId)}
+                        disabled={!isUnlocked}
+                      >
+                        <RiQrCodeLine className="h-4 w-4 mr-1" />
+                        QR Details
+                      </Button>
+                      <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
@@ -517,6 +804,83 @@ export default function InvoicesPage() {
             </motion.div>
           ))}
       </motion.div>
+
+      {/* QR Invoice Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>QR Invoice Full Details</DialogTitle>
+            <DialogDescription>
+              {isFetchingDetails ? "Loading from IPFS..." : "Complete QR invoice information"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isFetchingDetails ? (
+            <div className="flex items-center justify-center py-8">
+              <RiLoader4Line className="h-8 w-8 animate-spin mr-2" />
+              <span>Fetching and decrypting from IPFS...</span>
+            </div>
+          ) : fetchError ? (
+            <div className="p-4 bg-red-500/10 text-red-700 border border-red-500/20 rounded-md">
+              <p className="font-semibold">Error loading details</p>
+              <p className="text-sm">{fetchError}</p>
+              <p className="text-sm mt-2">Make sure you have unlocked the data storage.</p>
+            </div>
+          ) : decryptedQRInvoice || selectedInvoiceData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Invoice ID</label>
+                  <p className="text-base">{decryptedQRInvoice?.invoiceId || selectedInvoiceData?.invoiceId}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Amount</label>
+                  <p className="text-base text-green-600 font-semibold">{decryptedQRInvoice?.amount || selectedInvoiceData?.amount} IDRX</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Vendor Address</label>
+                  <p className="text-base font-mono text-sm">{decryptedQRInvoice?.vendorAddress || selectedInvoiceData?.vendorAddress}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Status</label>
+                  <Badge>{decryptedQRInvoice?.status || selectedInvoiceData?.status}</Badge>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold text-muted-foreground">Description</label>
+                  <p className="text-base">{decryptedQRInvoice?.description || selectedInvoiceData?.description || "No description"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Created At</label>
+                  <p className="text-base">{decryptedQRInvoice?.createdAt || selectedInvoiceData?.createdAt}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-muted-foreground">Created By</label>
+                  <p className="text-base font-mono text-sm">{decryptedQRInvoice?.createdBy || selectedInvoiceData?.createdBy}</p>
+                </div>
+              </div>
+              {decryptedQRInvoice && (
+                <div className="p-3 bg-green-500/10 text-green-700 border border-green-500/20 rounded-md text-sm">
+                  <p>✅ Data decrypted from IPFS successfully</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No QR invoice data available</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => {
+              setShowDetailsModal(false);
+              setSelectedCID(null);
+              setSelectedInvoiceData(null);
+            }}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

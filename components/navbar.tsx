@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnlock } from '@/hooks/useUnlock';
 import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
+import { RiLockLine, RiUnlockLine } from 'react-icons/ri';
 
 export function Navbar() {
   const { user, logout, isAuthenticated, isProfileComplete } = useAuth();
+  const { isUnlocked, isUnlocking, unlockEncryption, lock } = useUnlock();
   const isFreelancer = user?.role === 'freelancer';
   const logoSrc = '/Rivologo.png';
 
@@ -87,11 +90,38 @@ export function Navbar() {
                 </span>
               )}
               {isProfileComplete && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/dashboard/profile">Profile</Link>
-                </Button>
+                <>
+                  {/* Unlock/Lock Encryption Button */}
+                  {isUnlocked ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={lock}
+                      title="Click to lock encryption (key will persist until logout)"
+                      className="text-green-600 hover:text-green-700 border-green-600/20"
+                    >
+                      <RiUnlockLine className="h-4 w-4 mr-1" />
+                      Unlocked
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={unlockEncryption}
+                      disabled={isUnlocking}
+                      title="Sign to unlock private data encryption"
+                    >
+                      <RiLockLine className="h-4 w-4 mr-1" />
+                      {isUnlocking ? "Unlocking..." : "Unlock"}
+                    </Button>
+                  )}
+
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href="/dashboard/profile">Profile</Link>
+                  </Button>
+                </>
               )}
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              <Button variant="outline" size="sm" onClick={logout}>
                 Log out
               </Button>
             </div>
