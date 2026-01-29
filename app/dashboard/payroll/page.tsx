@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRivoHub } from "@/hooks/useRivoHub";
 import { useIDRXBalance, useIDRXAllowance, useApproveIDRX, hasSufficientAllowance, formatIDRX } from "@/hooks/useIDRXApproval";
 import { useUserPayrollEvents } from "@/hooks/useRivoHubEvents";
+import { useEmployeesList } from "@/hooks/usePinataList";
+import { useFetchFromIPFS } from "@/hooks/useFetchFromIPFS";
 import {
   RiTeamLine,
   RiAddLine,
@@ -50,38 +52,23 @@ export default function PayrollPage() {
   const { approve, isPending: isApproving, isConfirming: isApprovingConfirming, isSuccess: isApproveSuccess } = useApproveIDRX();
   const { events: payrollEvents, isLoading: isLoadingEvents } = useUserPayrollEvents(address);
 
+  // Fetch employee list from Pinata API (replaces localStorage)
+  const { items: employeesList, isLoading: isLoadingEmployees, error: employeesError, refetch: refetchEmployees } = useEmployeesList(address);
+
+  // Map Pinata employees to Employee interface for payroll
+  const employees: Employee[] = useMemo(() => {
+    return employeesList.map((emp: any) => ({
+      id: emp.id,
+      name: emp.name,
+      role: emp.role || 'Employee',
+      wallet: emp.wallet || emp.walletAddress || '',
+      salary: emp.salary?.toString() || '0',
+    }));
+  }, [employeesList]);
+
   // State management
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [showCreateBatch, setShowCreateBatch] = useState(false);
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    role: "",
-    wallet: "",
-    salary: "",
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  // Load employees from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("rivo-employees");
-    if (stored) {
-      try {
-        setEmployees(JSON.parse(stored));
-      } catch (error) {
-        console.error("Failed to load employees:", error);
-      }
-    }
-  }, []);
-
-  // Save employees to localStorage
-  useEffect(() => {
-    if (employees.length > 0) {
-      localStorage.setItem("rivo-employees", JSON.stringify(employees));
-    }
-  }, [employees]);
 
   // Check if total amount is approved
   const totalAmount = useMemo(() => {
@@ -122,85 +109,6 @@ export default function PayrollPage() {
       setShowCreateBatch(false);
     }
   }, [isSuccess]);
-
-  // Form validation for employee
-  const validateEmployeeForm = () => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      errors.name = "Name is required";
-    }
-
-    if (!formData.role.trim()) {
-      errors.role = "Role is required";
-    }
-
-    if (!formData.wallet.trim()) {
-      errors.wallet = "Wallet address is required";
-    } else if (!isAddress(formData.wallet)) {
-      errors.wallet = "Invalid Ethereum address";
-    }
-
-    if (!formData.salary.trim()) {
-      errors.salary = "Salary is required";
-    } else if (parseFloat(formData.salary) <= 0) {
-      errors.salary = "Salary must be greater than 0";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Handle add employee
-  const handleAddEmployee = () => {
-    if (!validateEmployeeForm()) return;
-
-    const newEmployee: Employee = {
-      id: `EMP-${Date.now()}`,
-      name: formData.name,
-      role: formData.role,
-      wallet: formData.wallet,
-      salary: formData.salary,
-    };
-
-    setEmployees([...employees, newEmployee]);
-    setFormData({ name: "", role: "", wallet: "", salary: "" });
-    setShowAddEmployee(false);
-    toast({
-      title: "Employee Added",
-      description: `${newEmployee.name} has been added to payroll`,
-    });
-  };
-
-  // Handle edit employee
-  const handleEditEmployee = () => {
-    if (!validateEmployeeForm() || !editingEmployee) return;
-
-    setEmployees(
-      employees.map((emp) =>
-        emp.id === editingEmployee.id
-          ? { ...emp, ...formData }
-          : emp
-      )
-    );
-
-    setFormData({ name: "", role: "", wallet: "", salary: "" });
-    setEditingEmployee(null);
-    toast({
-      title: "Employee Updated",
-      description: "Employee information has been updated",
-    });
-  };
-
-  // Handle delete employee
-  const handleDeleteEmployee = (employeeId: string) => {
-    setEmployees(employees.filter((emp) => emp.id !== employeeId));
-    setSelectedEmployees(selectedEmployees.filter((id) => id !== employeeId));
-    toast({
-      title: "Employee Removed",
-      description: "Employee has been removed from payroll",
-    });
-  };
 
   // Handle employee selection
   const handleEmployeeSelect = (employeeId: string, selected: boolean) => {
@@ -316,23 +224,10 @@ export default function PayrollPage() {
             Process batch payments for your team in IDRX
           </p>
         </div>
-        <div className="flex gap-2 mt-4 md:mt-0">
-          <Button
-            onClick={() => {
-              setFormData({ name: "", role: "", wallet: "", salary: "" });
-              setEditingEmployee(null);
-              setShowAddEmployee(true);
-            }}
-            variant="outline"
-          >
-            <RiAddLine className="mr-2 h-4 w-4" />
-            Add Employee
-          </Button>
-          <Button onClick={() => setShowCreateBatch(true)} disabled={!address || employees.length === 0}>
-            <RiPlayFill className="mr-2 h-4 w-4" />
-            Execute Payroll
-          </Button>
-        </div>
+        <Button onClick={() => setShowCreateBatch(true)} disabled={!address || employees.length === 0}>
+          <RiPlayFill className="mr-2 h-4 w-4" />
+          Execute Payroll
+        </Button>
       </motion.div>
 
       {/* Wallet Status */}
@@ -422,95 +317,6 @@ export default function PayrollPage() {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* Add/Edit Employee Form */}
-      {(showAddEmployee || editingEmployee) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card border rounded-lg p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              {editingEmployee ? "Edit Employee" : "Add Employee"}
-            </h2>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setShowAddEmployee(false);
-                setEditingEmployee(null);
-                setFormData({ name: "", role: "", wallet: "", salary: "" });
-              }}
-            >
-              ×
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-              {formErrors.name && <p className="text-sm text-red-500">{formErrors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Input
-                id="role"
-                placeholder="Developer"
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              />
-              {formErrors.role && <p className="text-sm text-red-500">{formErrors.role}</p>}
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="wallet">Wallet Address</Label>
-              <Input
-                id="wallet"
-                placeholder="0x..."
-                value={formData.wallet}
-                onChange={(e) => setFormData({ ...formData, wallet: e.target.value })}
-              />
-              {formErrors.wallet && <p className="text-sm text-red-500">{formErrors.wallet}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="salary">Salary (IDRX)</Label>
-              <Input
-                id="salary"
-                placeholder="10000000"
-                type="number"
-                step="0.01"
-                value={formData.salary}
-                onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-              />
-              {formErrors.salary && <p className="text-sm text-red-500">{formErrors.salary}</p>}
-            </div>
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <Button onClick={editingEmployee ? handleEditEmployee : handleAddEmployee}>
-              {editingEmployee ? "Update Employee" : "Add Employee"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddEmployee(false);
-                setEditingEmployee(null);
-                setFormData({ name: "", role: "", wallet: "", salary: "" });
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </motion.div>
-      )}
 
       {/* Execute Payroll Batch */}
       {showCreateBatch && (
@@ -602,24 +408,21 @@ export default function PayrollPage() {
         <Card>
           <CardHeader>
             <CardTitle>Employee List</CardTitle>
-            <CardDescription>Manage your team and their payment details</CardDescription>
+            <CardDescription>Select employees for payroll batch payment</CardDescription>
           </CardHeader>
           <CardContent>
-            {employees.length === 0 ? (
+            {isLoadingEmployees ? (
+              <div className="text-center py-12">
+                <RiLoader4Line className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Loading employees...</p>
+              </div>
+            ) : employees.length === 0 ? (
               <div className="text-center py-12">
                 <RiTeamLine className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">No employees added yet</p>
-                <Button
-                  onClick={() => {
-                    setFormData({ name: "", role: "", wallet: "", salary: "" });
-                    setShowAddEmployee(true);
-                  }}
-                  className="mt-4"
-                  variant="outline"
-                >
-                  <RiAddLine className="mr-2 h-4 w-4" />
-                  Add Your First Employee
-                </Button>
+                <p className="text-muted-foreground">No employees found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add employees from the Employees page first
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -639,35 +442,10 @@ export default function PayrollPage() {
                       </p>
                     </div>
 
-                    <div className="text-right mr-4">
+                    <div className="text-right">
                       <p className="font-medium text-primary">
                         {parseFloat(employee.salary).toLocaleString("id-ID")} IDRX
                       </p>
-                    </div>
-
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setFormData({
-                            name: employee.name,
-                            role: employee.role,
-                            wallet: employee.wallet,
-                            salary: employee.salary,
-                          });
-                          setEditingEmployee(employee);
-                        }}
-                      >
-                        <RiEditLine className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteEmployee(employee.id)}
-                      >
-                        <RiDeleteBinLine className="h-4 w-4" />
-                      </Button>
                     </div>
                   </motion.div>
                 ))}

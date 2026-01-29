@@ -7,6 +7,7 @@ import { useRole } from "@/hooks/useRole";
 import { useUnlock } from "@/hooks/useUnlock";
 import { useToast } from "@/hooks/use-toast";
 import { useFetchFromIPFS } from "@/hooks/useFetchFromIPFS";
+import { useEmployeesList } from "@/hooks/usePinataList";
 import { Permission } from "@/lib/roles";
 import { encryptDataWithKey } from "@/lib/ipfs/aes-encryption";
 import { uploadJSONToIPFS } from "@/lib/ipfs/upload";
@@ -61,13 +62,12 @@ export default function EmployeesPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
-  const [employeesList, setEmployeesList] = useState<any[]>([]);
-  
+
   // Modal for viewing full employee details
   const [selectedEmployeeData, setSelectedEmployeeData] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedCID, setSelectedCID] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -86,39 +86,15 @@ export default function EmployeesPage() {
   const { getEncryptionKey, isUnlocked } = useUnlock();
   const { address } = useAccount();
   const { toast } = useToast();
-  
+
   // Hook for fetching from IPFS
   const { data: decryptedEmployee, isLoading: isFetchingDetails, error: fetchError, fetch: fetchEmployeeDetails } = useFetchFromIPFS(
     selectedCID,
     isUnlocked ? getEncryptionKey() : null
   );
 
-  // Load employee list from localStorage on mount
-  useEffect(() => {
-    if (!address) return;
-
-    try {
-      const storedEmployees = localStorage.getItem(`employees_${address}`);
-      if (storedEmployees) {
-        const mappings = JSON.parse(storedEmployees);
-        // Create preview list from localStorage mappings
-        const previewList = mappings.map((mapping: any) => ({
-          id: mapping.employeeId,
-          name: mapping.employeeName,
-          cid: mapping.cid,
-          department: 'Loading...',
-          role: 'Loading...',
-          avatar: mapping.employeeName.split(' ').map((n: string) => n[0]).join(''),
-          paymentStatus: 'pending',
-          joinDate: new Date(mapping.timestamp).toLocaleDateString('id-ID'),
-          lastPaid: '-',
-        }));
-        setEmployeesList(previewList);
-      }
-    } catch (error) {
-      console.error("Error loading employees from localStorage:", error);
-    }
-  }, [address]);
+  // Fetch employee list from Pinata API (replaces localStorage)
+  const { items: employeesList, isLoading: isLoadingList, error: listError, refetch: refetchEmployees } = useEmployeesList(address);
 
   const departments = ["all", ...Array.from(new Set(employeesList.map(e => e.department)))];
 
@@ -226,24 +202,9 @@ export default function EmployeesPage() {
 
       const cid = uploadResult.cid || uploadResult;
 
-      // Store CID mapping to localStorage
-      const mappingKey = `employee_${address}_${Date.now()}`;
-      const mapping = {
-        cid,
-        timestamp: Date.now(),
-        walletAddress: address,
-        employeeId: newEmployee.id,
-        employeeName: formData.name,
-      };
-      localStorage.setItem(mappingKey, JSON.stringify(mapping));
-
-      // Also store in wallet IPFS mapping for retrieval
-      const employeeList = JSON.parse(localStorage.getItem(`employees_${address}`) || '[]');
-      employeeList.push(mapping);
-      localStorage.setItem(`employees_${address}`, JSON.stringify(employeeList));
-
-      // Update UI with new employee (unencrypted for display)
-      setEmployeesList([...employeesList, newEmployee]);
+      // Upload successful - metadata is stored in Pinata with walletAddress filter
+      // Refetch employee list from Pinata API to get updated list
+      await refetchEmployees();
 
       // Reset form
       setFormData({
@@ -277,21 +238,15 @@ export default function EmployeesPage() {
 
   // Handle viewing employee full details from IPFS
   const handleViewEmployee = async (employee: any) => {
-    // Check if this employee has encrypted data in IPFS
+    // Employee from Pinata API already has CID
     try {
-      const storedEmployees = localStorage.getItem(`employees_${address}`);
-      if (storedEmployees) {
-        const mappings = JSON.parse(storedEmployees);
-        const employeeMapping = mappings.find((m: any) => m.employeeId === employee.id);
-        
-        if (employeeMapping) {
-          setSelectedCID(employeeMapping.cid);
-          setShowDetailsModal(true);
-        } else {
-          // No encrypted data, show current data
-          setSelectedEmployeeData(employee);
-          setShowDetailsModal(true);
-        }
+      if (employee.cid) {
+        setSelectedCID(employee.cid);
+        setShowDetailsModal(true);
+      } else {
+        // Fallback to show current data if no CID
+        setSelectedEmployeeData(employee);
+        setShowDetailsModal(true);
       }
     } catch (error) {
       console.error("Error viewing employee:", error);

@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRivoHub } from "@/hooks/useRivoHub";
 import { useIDRXBalance, useIDRXAllowance, useApproveIDRX, hasSufficientAllowance, formatIDRX } from "@/hooks/useIDRXApproval";
 import { useUserInvoiceEvents } from "@/hooks/useRivoHubEvents";
+import { useQRInvoicesList } from "@/hooks/usePinataList";
 import {
   RiQrCodeLine,
   RiAddLine,
@@ -60,6 +61,9 @@ export default function InvoicesPage() {
   const { allowance, refetch: refetchAllowance } = useIDRXAllowance(address);
   const { approve, isPending: isApproving, isConfirming: isApprovingConfirming, isSuccess: isApproveSuccess } = useApproveIDRX();
   const { events: invoiceEvents, isLoading: isLoadingEvents } = useUserInvoiceEvents(address);
+
+  // Fetch QR invoice list from Pinata API (replaces localStorage)
+  const { items: qrInvoicesList, isLoading: isLoadingQRList, error: qrListError, refetch: refetchQRInvoices } = useQRInvoicesList(address);
 
   // Form states
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -210,21 +214,9 @@ export default function InvoicesPage() {
 
       const cid = uploadResult.cid || uploadResult;
 
-      // Store CID mapping to localStorage
-      const mappingKey = `qr_invoice_${address}_${Date.now()}`;
-      const mapping = {
-        cid,
-        timestamp: Date.now(),
-        walletAddress: address,
-        invoiceId: qrInvoiceData.id,
-        invoiceNumber: formData.invoiceId,
-      };
-      localStorage.setItem(mappingKey, JSON.stringify(mapping));
-
-      // Also store in wallet IPFS mapping for retrieval
-      const qrInvoiceList = JSON.parse(localStorage.getItem(`qr_invoices_${address}`) || '[]');
-      qrInvoiceList.push(mapping);
-      localStorage.setItem(`qr_invoices_${address}`, JSON.stringify(qrInvoiceList));
+      // Upload successful - metadata is stored in Pinata with walletAddress filter
+      // Refetch QR invoice list from Pinata API to get updated list
+      await refetchQRInvoices();
 
       // Reset form
       setFormData({
@@ -255,22 +247,19 @@ export default function InvoicesPage() {
 
   // Handle viewing QR invoice full details from IPFS
   const handleViewQRInvoice = async (invoiceId: string) => {
+    // QR Invoice from Pinata API already has CID
     try {
-      const storedQRInvoices = localStorage.getItem(`qr_invoices_${address}`);
-      if (storedQRInvoices) {
-        const mappings = JSON.parse(storedQRInvoices);
-        const invoiceMapping = mappings.find((m: any) => m.invoiceNumber === invoiceId);
-        
-        if (invoiceMapping) {
-          setSelectedCID(invoiceMapping.cid);
-          setShowDetailsModal(true);
-        } else {
-          toast({
-            title: "Not Found",
-            description: "QR Invoice data not found in storage",
-            variant: "destructive",
-          });
-        }
+      const qrInvoice = qrInvoicesList.find((inv: any) => inv.invoiceNumber === invoiceId);
+
+      if (qrInvoice && qrInvoice.cid) {
+        setSelectedCID(qrInvoice.cid);
+        setShowDetailsModal(true);
+      } else {
+        toast({
+          title: "Not Found",
+          description: "QR Invoice data not found in storage",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error viewing QR invoice:", error);
