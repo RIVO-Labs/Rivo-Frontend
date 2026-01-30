@@ -13,7 +13,7 @@ interface User {
   address: string;
   username: string;
   email?: string;
-  role: 'sme_owner' | 'vendor' | 'staff';
+  role: 'sme_owner' | 'vendor';
   roleSelected?: boolean;
   isProfileComplete?: boolean;
   createdAt?: string;
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isConnected && address) {
       const addressKey = address.toLowerCase();
       const storedRole = (localStorage.getItem(`role_${addressKey}`) ??
-        localStorage.getItem(`role_${address}`)) as 'sme_owner' | 'vendor' | 'staff' | null;
+        localStorage.getItem(`role_${address}`)) as 'sme_owner' | 'vendor' | null;
 
       // Try to load from IPFS first if Pinata is configured
       if (isPinataConfigured()) {

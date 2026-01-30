@@ -42,7 +42,7 @@ interface ProfileData {
   username: string;
   firstName: string;
   lastName: string;
-  role: "sme_owner" | "vendor" | "staff";
+  role: "sme_owner" | "vendor";
 }
 
 export default function SignupPage() {
@@ -369,7 +369,7 @@ export default function SignupPage() {
                     </Label>
                     <RadioGroup
                       value={profileData.role}
-                      onValueChange={(value: "sme_owner" | "vendor" | "staff") =>
+                      onValueChange={(value: "sme_owner" | "vendor") =>
                         setProfileData({ ...profileData, role: value })
                       }
                       className="grid grid-cols-3 gap-3"
@@ -392,15 +392,7 @@ export default function SignupPage() {
                         <span className="font-medium text-sm">Vendor</span>
                         <span className="text-xs text-muted-foreground mt-1 text-center">Receive invoice payments</span>
                       </Label>
-                      <Label
-                        htmlFor="staff"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
-                      >
-                        <RadioGroupItem value="staff" id="staff" className="sr-only" />
-                        <RiTeamLine className="mb-2 h-5 w-5" />
-                        <span className="font-medium text-sm">Staff/Agent</span>
-                        <span className="text-xs text-muted-foreground mt-1 text-center">Receive payroll</span>
-                      </Label>
+
                     </RadioGroup>
                   </div>
 
