@@ -11,7 +11,6 @@ export enum Permission {
   ADD_EMPLOYEE = "ADD_EMPLOYEE",
   GENERATE_QR_INVOICE = "GENERATE_QR_INVOICE",
   PAY_INVOICE = "PAY_INVOICE",
-  EXECUTE_PAYROLL = "EXECUTE_PAYROLL",
   VIEW_DASHBOARD = "VIEW_DASHBOARD",
 }
 
@@ -22,7 +21,6 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permission.ADD_EMPLOYEE,
     Permission.GENERATE_QR_INVOICE,
     Permission.PAY_INVOICE,
-    Permission.EXECUTE_PAYROLL,
     Permission.VIEW_DASHBOARD,
   ],
   [UserRole.SME_OWNER]: [
@@ -30,7 +28,6 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permission.ADD_EMPLOYEE,
     Permission.GENERATE_QR_INVOICE,
     Permission.PAY_INVOICE,
-    Permission.EXECUTE_PAYROLL,
     Permission.VIEW_DASHBOARD,
   ],
   [UserRole.SUPPLIER]: [

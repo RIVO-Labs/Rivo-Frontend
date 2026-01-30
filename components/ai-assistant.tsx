@@ -64,7 +64,7 @@ export function AIAssistantMessage({ content, isTyping = false }: AIAssistantMes
 // AI Assistant Response Generator - Now using real Gemini AI
 export async function generateAIResponse(userMessage: string, context: {
     agreementTitle?: string;
-    role?: 'freelancer' | 'company';
+    role?: 'sme_owner' | 'vendor';
     attachments?: any[];
 }): Promise<string> {
     try {

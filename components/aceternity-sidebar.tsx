@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   RiHomeLine,
   RiQrCodeLine,
-  RiTeamLine,
   RiStore2Line,
   RiLineChartLine,
   RiSettings4Line,
@@ -22,7 +21,6 @@ import {
   RiInfoCardFill,
   RiMoneyDollarCircleLine,
   RiFileTextLine,
-  RiUser2Line,
 } from 'react-icons/ri';
 
 interface NavItem {
@@ -44,19 +42,9 @@ const rivoNavItems: NavItem[] = [
     icon: <RiQrCodeLine className="h-5 w-5" />,
   },
   {
-    title: 'Payroll',
-    href: '/dashboard/payroll',
-    icon: <RiTeamLine className="h-5 w-5" />,
-  },
-  {
     title: 'Suppliers',
     href: '/dashboard/suppliers',
     icon: <RiStore2Line className="h-5 w-5" />,
-  },
-  {
-    title: 'Employees',
-    href: '/dashboard/employees',
-    icon: <RiUser2Line className="h-5 w-5" />,
   },
   {
     title: 'Payments',

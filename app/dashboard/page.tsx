@@ -1,17 +1,16 @@
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useUserInvoiceEvents, useUserPayrollEvents } from '@/hooks/useRivoHubEvents';
+import { useUserInvoiceEvents } from '@/hooks/useRivoHubEvents';
 import { useIDRXBalance, formatIDRX } from '@/hooks/useIDRXApproval';
 import {
   RiQrCodeLine,
-  RiTeamLine,
   RiMoneyDollarCircleLine,
   RiBarChartLine,
   RiArrowRightLine,
@@ -26,30 +25,15 @@ import {
 export default function DashboardPage() {
   const { address } = useAccount();
   const { events: invoiceEvents, isLoading: isLoadingInvoices } = useUserInvoiceEvents(address);
-  const { events: payrollEvents, isLoading: isLoadingPayroll } = useUserPayrollEvents(address);
   const { balance } = useIDRXBalance(address);
-  const [employees, setEmployees] = useState<any[]>([]);
-
-  // Load employees from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("rivo-employees");
-    if (stored) {
-      try {
-        setEmployees(JSON.parse(stored));
-      } catch (error) {
-        console.error("Failed to load employees:", error);
-      }
-    }
-  }, []);
 
   // Calculate statistics from blockchain data
   const stats = useMemo(() => {
     if (!address) {
       return {
-        totalEmployees: employees.length,
-        monthlyPayroll: "0",
         paidInvoices: 0,
         totalPaid: "0",
+        walletBalance: "0",
       };
     }
 
@@ -62,29 +46,17 @@ export default function DashboardPage() {
       return sum + parseFloat(event.amountFormatted);
     }, 0);
 
-    // Calculate payroll stats
-    const totalPayrollPaid = payrollEvents.reduce((sum, event) => {
-      return sum + parseFloat(event.totalAmountFormatted);
-    }, 0);
-
-    // Get latest payroll amount for "monthly payroll"
-    const latestPayroll = payrollEvents.length > 0 ? parseFloat(payrollEvents[0].totalAmountFormatted) : 0;
-
-    const totalPaid = totalInvoicesPaid + totalPayrollPaid;
+    const totalPaid = totalInvoicesPaid;
 
     return {
-      totalEmployees: employees.length,
-      monthlyPayroll: latestPayroll.toLocaleString("id-ID", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }),
       paidInvoices: userAsPayerInvoices.length,
       totalPaid: totalPaid.toLocaleString("id-ID", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }),
+      walletBalance: formatIDRX(balance),
     };
-  }, [invoiceEvents, payrollEvents, address, employees]);
+  }, [invoiceEvents, address, balance]);
 
   // Combine and sort recent activity
   const recentActivity = useMemo(() => {
@@ -113,31 +85,11 @@ export default function DashboardPage() {
       });
     });
 
-    // Add payroll events
-    payrollEvents.slice(0, 5).forEach((event) => {
-      activities.push({
-        id: `payroll-${event.txHash}`,
-        type: "payroll",
-        description: `Payroll processed for ${event.totalRecipients} employees`,
-        amount: parseFloat(event.totalAmountFormatted).toLocaleString("id-ID", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2,
-        }) + " IDRX",
-        date: new Date(event.timestamp * 1000).toLocaleDateString("id-ID", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        }),
-        timestamp: event.timestamp,
-        status: "completed",
-      });
-    });
-
     // Sort by timestamp descending
     return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
-  }, [invoiceEvents, payrollEvents, address]);
+  }, [invoiceEvents, address]);
 
-  const isLoading = isLoadingInvoices || isLoadingPayroll;
+  const isLoading = isLoadingInvoices;
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -150,7 +102,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">RIVO Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage your business payments and payroll with IDRX
+            Manage your business payments with IDRX
           </p>
         </div>
         <Badge className="mt-4 md:mt-0 bg-primary/10 text-primary border-primary/20">
@@ -171,16 +123,6 @@ export default function DashboardPage() {
               <RiQrCodeLine className="h-12 w-12 text-primary mx-auto mb-4" />
               <h3 className="font-semibold mb-2">Pay Invoice</h3>
               <p className="text-sm text-muted-foreground">Pay vendor invoices with IDRX</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/dashboard/payroll">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-success/20 hover:border-success/40">
-            <CardContent className="p-6 text-center">
-              <RiTeamLine className="h-12 w-12 text-success mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">Process Payroll</h3>
-              <p className="text-sm text-muted-foreground">Execute batch payments to employees</p>
             </CardContent>
           </Card>
         </Link>
@@ -215,7 +157,7 @@ export default function DashboardPage() {
       >
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Latest Payroll</CardTitle>
+            <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
             <RiMoneyDollarCircleLine className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -224,15 +166,11 @@ export default function DashboardPage() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-primary">
-                  {stats.monthlyPayroll || "0"} IDRX
+                  {stats.walletBalance || "0"} IDRX
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Last batch execution
+                  Available balance
                 </p>
-                <div className="flex items-center mt-2">
-                  <RiTeamLine className="h-4 w-4 text-muted-foreground mr-2" />
-                  <span className="text-sm">{stats.totalEmployees} employees</span>
-                </div>
               </>
             )}
           </CardContent>
@@ -333,11 +271,7 @@ export default function DashboardPage() {
                     className="flex items-center justify-between p-4 border rounded-lg"
                   >
                     <div className="flex items-center space-x-4">
-                      {activity.type === 'payroll' ? (
-                        <RiTeamLine className="h-8 w-8 text-success" />
-                      ) : (
-                        <RiQrCodeLine className="h-8 w-8 text-primary" />
-                      )}
+                      <RiQrCodeLine className="h-8 w-8 text-primary" />
                       <div>
                         <p className="font-medium">{activity.description}</p>
                         <p className="text-sm text-muted-foreground">{activity.date}</p>

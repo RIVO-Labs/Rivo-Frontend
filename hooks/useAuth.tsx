@@ -2,17 +2,18 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount, useDisconnect, usePublicClient } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchProfileFromIPFS, isPinataConfigured } from "@/lib/ipfs/pinata";
 import { getWalletIPFSCID } from "@/lib/ipfs/storage";
-import { CONTRACTS } from "@/lib/web3/contracts";
 
 interface User {
   id: string;
   address: string;
   username: string;
   email?: string;
+  businessName?: string;
+  businessCategory?: string;
   role: 'sme_owner' | 'vendor';
   roleSelected?: boolean;
   isProfileComplete?: boolean;
@@ -35,7 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
   const { disconnect } = useDisconnect();
   const router = useRouter();
   const pathname = usePathname();
@@ -45,7 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasProfileBasics = !!(
     user?.email &&
     user?.username &&
-    user?.username.length > 0
+    user?.username.length > 0 &&
+    user?.businessName &&
+    user?.businessCategory
   );
 
   // Check if profile is complete (has email, username, and selected role)
@@ -62,25 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           let ipfsCID = '';
 
-          if (publicClient) {
-            try {
-              const onChainCID = await publicClient.readContract({
-                address: CONTRACTS.RivoHub.address,
-                abi: CONTRACTS.RivoHub.abi,
-                functionName: "getProfileCID",
-                args: [address as `0x${string}`],
-              });
-              if (typeof onChainCID === "string" && onChainCID.length > 0) {
-                ipfsCID = onChainCID;
-              }
-            } catch (error) {
-              console.warn("Failed to fetch profile CID from contract:", error);
-            }
-          }
-
-          if (!ipfsCID) {
-            ipfsCID = getWalletIPFSCID(address) || '';
-          }
+          ipfsCID = getWalletIPFSCID(address) || '';
 
           if (ipfsCID) {
             console.log("Loading profile from IPFS:", ipfsCID);
@@ -90,13 +74,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (ipfsData) {
               const roleSelected = !!(ipfsData.role || storedRole);
-              const isComplete = !!(ipfsData.email && ipfsData.username && roleSelected);
+              const isComplete = !!(
+                ipfsData.email &&
+                ipfsData.username &&
+                ipfsData.businessName &&
+                ipfsData.businessCategory &&
+                roleSelected
+              );
 
               setUser({
                 id: address,
                 address: address,
                 username: ipfsData.username || '',
                 email: ipfsData.email,
+                businessName: ipfsData.businessName || '',
+                businessCategory: ipfsData.businessCategory || '',
                 role: ipfsData.role || storedRole || 'sme_owner',
                 roleSelected,
                 isProfileComplete: isComplete,
@@ -127,13 +119,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const userData = JSON.parse(storedUserData);
           const roleSelected = !!(userData.role || storedRole);
-          const isComplete = !!(userData.email && userData.username && roleSelected);
+          const isComplete = !!(
+            userData.email &&
+            userData.username &&
+            userData.businessName &&
+            userData.businessCategory &&
+            roleSelected
+          );
 
           setUser({
             id: address,
             address: address,
             username: userData.username || '',
             email: userData.email,
+            businessName: userData.businessName || '',
+            businessCategory: userData.businessCategory || '',
             role: userData.role || storedRole || 'sme_owner',
             roleSelected,
             isProfileComplete: isComplete,
@@ -169,6 +169,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: address,
           address: address,
           username: '',
+          businessName: '',
+          businessCategory: '',
+          businessName: '',
+          businessCategory: '',
           role: storedRole || 'sme_owner',
           roleSelected: !!storedRole,
           isProfileComplete: false,

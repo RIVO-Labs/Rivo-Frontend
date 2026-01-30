@@ -276,7 +276,7 @@ export default function EmployeesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Employee Management</h1>
           <p className="text-muted-foreground">
-            Manage your team members and their payroll information
+            Manage your team members and contact details
           </p>
         </div>
         <Button
@@ -474,7 +474,7 @@ export default function EmployeesPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Monthly Payroll</p>
+                <p className="text-sm font-medium text-muted-foreground">Monthly Spend</p>
                 <p className="text-2xl font-bold">{(totalSalary / 1000000).toFixed(1)}M IDRX</p>
               </div>
               <RiMoneyDollarCircleLine className="h-8 w-8 text-green-500" />

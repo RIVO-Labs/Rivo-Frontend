@@ -53,7 +53,7 @@ export default function InvoicesPage() {
   const { hasPermission: checkPermission } = useRole();
   const canGenerateInvoice = checkPermission(Permission.GENERATE_QR_INVOICE);
   const canPayInvoice = checkPermission(Permission.PAY_INVOICE);
-  const { getEncryptionKey, isUnlocked } = useUnlock();
+  const { getEncryptionKey, isUnlocked, unlockEncryption, isUnlocking } = useUnlock();
 
   // Hooks for smart contract interactions
   const { payInvoice, isPending, isConfirming, isSuccess, hash } = useRivoHub();
@@ -164,7 +164,7 @@ export default function InvoicesPage() {
     approve(); // Approve unlimited
   };
 
-  // Handle generate QR invoice
+  // Handle generate QR invoice (create metadata only)
   const handleGenerateQRInvoice = async () => {
     if (!validateForm()) return;
 
@@ -177,9 +177,13 @@ export default function InvoicesPage() {
     // Check if encryption key is available
     const encryptionKey = getEncryptionKey();
     if (!encryptionKey) {
+      await unlockEncryption();
+    }
+    const activeKey = getEncryptionKey();
+    if (!activeKey) {
       toast({
         title: "Encryption Key Not Available",
-        description: "Please unlock your data storage first by clicking the Unlock button in the navbar.",
+        description: "Please unlock your data storage first.",
         variant: "destructive",
       });
       return;
@@ -199,7 +203,7 @@ export default function InvoicesPage() {
       };
 
       // Encrypt QR invoice data
-      const encryptedData = await encryptDataWithKey(qrInvoiceData, encryptionKey);
+      const encryptedData = await encryptDataWithKey(qrInvoiceData, activeKey);
 
       // Upload encrypted data to IPFS
       const uploadResult = await uploadJSONToIPFS({
@@ -230,8 +234,8 @@ export default function InvoicesPage() {
       setShowCreateForm(false);
 
       toast({
-        title: "QR Invoice Generated Successfully",
-        description: `QR Invoice "${formData.invoiceId}" has been encrypted and stored to IPFS.`,
+        title: "QR Invoice Generated",
+        description: `Metadata saved to IPFS for invoice "${formData.invoiceId}".`,
       });
     } catch (error) {
       console.error("Error generating QR invoice:", error);
@@ -278,7 +282,7 @@ export default function InvoicesPage() {
     }
   }, [showDetailsModal, selectedCID]);
 
-  // Handle pay invoice
+  // Handle pay invoice (create metadata + on-chain payment)
   const handlePayInvoice = async () => {
     if (!validateForm()) return;
 
@@ -298,15 +302,55 @@ export default function InvoicesPage() {
     }
 
     try {
-      // Directly call smart contract payInvoice
-      // Payment record will be permanently stored on blockchain via InvoicePaid event
-      // No need for IPFS or localStorage - blockchain is the single source of truth
+      // Build invoice metadata (stored on IPFS) before on-chain payment
+      const encryptionKey = getEncryptionKey();
+      if (!encryptionKey) {
+        await unlockEncryption();
+      }
+      const activeKey = getEncryptionKey();
+      if (!activeKey) {
+        toast({
+          title: "Encryption Key Not Available",
+          description: "Please unlock your data storage first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const qrInvoiceData = {
+        invoiceId: formData.invoiceId,
+        vendorAddress: formData.vendorAddress,
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        createdAt: new Date().toISOString(),
+        createdBy: address,
+        status: 'paid',
+        id: Math.random().toString(36).substr(2, 9),
+      };
+
+      setIsEncrypting(true);
+
+      const encryptedData = await encryptDataWithKey(qrInvoiceData, activeKey);
+      const uploadResult = await uploadJSONToIPFS({
+        encrypted: encryptedData,
+        metadata: {
+          type: 'qr_invoice',
+          timestamp: Date.now(),
+          walletAddress: address,
+          invoiceId: formData.invoiceId,
+        },
+      });
+
+      const cid = uploadResult.cid || uploadResult;
+
       await payInvoice(
         formData.invoiceId,
+        cid,
         formData.vendorAddress as `0x${string}`,
         formData.amount
       );
 
+      await refetchQRInvoices();
       // Event will be automatically fetched by useUserInvoiceEvents hook
     } catch (error) {
       console.error("Payment failed:", error);
@@ -315,6 +359,8 @@ export default function InvoicesPage() {
         description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsEncrypting(false);
     }
   };
 
@@ -783,7 +829,7 @@ export default function InvoicesPage() {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Vendor Address</label>
-                  <p className="text-base font-mono text-sm">{decryptedQRInvoice?.vendorAddress || selectedInvoiceData?.vendorAddress}</p>
+                  <p className="font-mono text-sm">{decryptedQRInvoice?.vendorAddress || selectedInvoiceData?.vendorAddress}</p>
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Status</label>
@@ -799,7 +845,7 @@ export default function InvoicesPage() {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Created By</label>
-                  <p className="text-base font-mono text-sm">{decryptedQRInvoice?.createdBy || selectedInvoiceData?.createdBy}</p>
+                  <p className="font-mono text-sm">{decryptedQRInvoice?.createdBy || selectedInvoiceData?.createdBy}</p>
                 </div>
               </div>
               {decryptedQRInvoice && (

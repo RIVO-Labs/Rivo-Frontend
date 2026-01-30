@@ -1,4 +1,4 @@
-// RIVO Platform - Account Payable & Payroll System dengan IDRX
+// RIVO Platform - Account Payable System dengan IDRX
 
 export const testimonials = [
   {
@@ -21,12 +21,12 @@ export const testimonials = [
   },
   {
     quote:
-      "Batch payroll with RIVO saves us hours every month. Our logistics team receives payments instantly with complete transparency on blockchain.",
+      "RIVO saves us hours every month on supplier payments. Our logistics team gets instant settlement with complete transparency on-chain.",
     name: "Priya Sharma",
     role: "Operations Manager, Logistics Hub",
     avatar: "https://randomuser.me/api/portraits/women/22.jpg",
     rating: 5,
-    stats: ["45 Staff Paid Monthly", "5B+ IDRX Distributed", "Real-time Settlement"],
+    stats: ["45 Suppliers Paid", "5B+ IDRX Distributed", "Real-time Settlement"],
   },
   {
     quote:
@@ -39,7 +39,7 @@ export const testimonials = [
   },
   {
     quote:
-      "On-chain payment records give us complete audit trails. Compliance is easy and our payroll process is now fully automated with RIVO.",
+      "On-chain payment records give us complete audit trails. Compliance is easy and our supplier payments are now fully automated with RIVO.",
     name: "Elena Popov",
     role: "Finance Controller, UKM Group",
     avatar: "https://randomuser.me/api/portraits/women/65.jpg",
@@ -52,11 +52,10 @@ export const testimonials = [
 export const featureCategories = {
   forSMEOwners: [
     "Pay supplier invoices with IDRX",
-    "Execute batch payroll in one transaction",
     "Track all payments with blockchain verification",
     "Approve IDRX spending once, use forever",
     "Automatic on-chain settlement records",
-    "Manage vendors and staff wallet addresses",
+    "Manage vendors and supplier wallet addresses",
   ],
   forVendors: [
     "Receive invoice payments instantly",
@@ -66,14 +65,6 @@ export const featureCategories = {
     "No bank account needed for settlement",
     "Cross-border payment optimization",
   ],
-  forStaff: [
-    "Receive payroll instantly",
-    "Get paid in IDRX stablecoin",
-    "Transparent salary records on blockchain",
-    "No bank delays or transfer fees",
-    "Mobile-friendly payment tracking",
-    "Instant proof of payment",
-  ],
 };
 
 // RIVO Core Features
@@ -82,11 +73,6 @@ export const coreFeatures = [
     title: "IDRX Invoice Payment",
     description: "Pay supplier invoices using IDRX stablecoin. On-chain verification prevents duplicate payments and provides instant settlement.",
     icon: "payment",
-  },
-  {
-    title: "Batch Payroll Processing",
-    description: "Pay multiple staff/agents in one transaction. Atomic execution ensures all payments succeed or fail together - no partial failures.",
-    icon: "batch",
   },
   {
     title: "Blockchain Verification",
@@ -114,12 +100,12 @@ export const coreFeatures = [
 export const smeOwnerTestimonials = [
   {
     quote:
-      "RIVO's batch payroll saved us from doing 50+ individual bank transfers every month. Now it's just one click and everyone gets paid instantly.",
+      "RIVO saved us from doing 50+ individual bank transfers every month. Now supplier payments are just one click and settle instantly.",
     name: "Sarah Chen",
     role: "CFO, PT Export Indonesia",
     avatar: "https://randomuser.me/api/portraits/women/44.jpg",
     rating: 5,
-    stats: ["2.5B IDRX Processed", "50 Staff Paid Monthly", "100% On-time"],
+    stats: ["2.5B IDRX Processed", "50 Suppliers Paid", "100% On-time"],
   },
   {
     quote:
@@ -171,27 +157,6 @@ export const vendorTestimonials = [
   },
 ];
 
-export const staffTestimonials = [
-  {
-    quote:
-      "Getting my salary in IDRX is amazing. It arrives instantly without bank delays, and I can track it on the blockchain myself.",
-    name: "Ahmad Rizki",
-    role: "Logistics Agent",
-    avatar: "https://randomuser.me/api/portraits/men/12.jpg",
-    rating: 5,
-    stats: ["Instant Payroll", "Never Late", "Full Transparency"],
-  },
-  {
-    quote:
-      "No more waiting for bank clearing. My commission arrives the same day payroll is processed - usually in minutes!",
-    name: "Siti Nurhaliza",
-    role: "Field Sales Agent",
-    avatar: "https://randomuser.me/api/portraits/women/15.jpg",
-    rating: 5,
-    stats: ["Real-time Payment", "On-chain Proof", "Mobile Accessible"],
-  },
-];
-
 // Role-specific quick actions
 export const smeOwnerQuickActions = [
   {
@@ -200,13 +165,6 @@ export const smeOwnerQuickActions = [
     icon: "invoice",
     href: "/dashboard/invoices",
     color: "primary",
-  },
-  {
-    title: "Execute Payroll",
-    description: "Batch payment to staff/agents",
-    icon: "payroll",
-    href: "/dashboard/payroll",
-    color: "success",
   },
   {
     title: "View Analytics",
@@ -229,23 +187,6 @@ export const vendorQuickActions = [
     title: "My Profile",
     description: "Update wallet and details",
     icon: "profile",
-    href: "/dashboard/profile",
-    color: "primary",
-  },
-];
-
-export const staffQuickActions = [
-  {
-    title: "Payroll History",
-    description: "View received payroll payments",
-    icon: "history",
-    href: "/dashboard/payroll",
-    color: "success",
-  },
-  {
-    title: "My Wallet",
-    description: "Check IDRX balance",
-    icon: "wallet",
     href: "/dashboard/profile",
     color: "primary",
   },

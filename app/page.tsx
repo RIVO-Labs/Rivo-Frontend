@@ -23,7 +23,6 @@ import {
   RiStarFill,
   RiQrCodeLine,
   RiMoneyDollarCircleLine,
-  RiTeamLine,
   RiBarChartLine,
   RiRobotLine,
   RiGasStationLine,
@@ -34,7 +33,6 @@ import {
   RiHistoryLine,
   RiSettings4Line,
   RiAlertLine,
-  RiWalletLine,
   RiLineChartLine,
   RiShieldLine,
   RiThumbUpLine,
@@ -50,7 +48,6 @@ import { FaqSection } from "@/components/faq-section";
 const featureIcons = {
   qr: RiQrCodeLine,
   payment: RiMoneyDollarCircleLine,
-  batch: RiTeamLine,
   status: RiBarChartLine,
   ai: RiRobotLine,
   gas: RiGasStationLine,
@@ -163,7 +160,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mx-auto mb-8 max-w-3xl text-lg text-muted-foreground md:text-xl"
             >
-              RIVO transforms payroll and supplier payments for Indonesian startups. Create QR invoices, process batch payroll, and settle instantly using IDRX stablecoin on Base.
+              RIVO transforms supplier payments for Indonesian startups. Create QR invoices and settle instantly using IDRX stablecoin on Base.
             </motion.p>
 
             <motion.div
@@ -184,7 +181,7 @@ export default function Home() {
                   variant="outline"
                   className="w-full border-primary/50 px-8 py-6 text-lg hover:bg-primary/10 sm:w-auto"
                 >
-                  Process Payroll
+                  View Dashboard
                   <RiArrowRightLine className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -209,7 +206,7 @@ export default function Home() {
                 Payment Infrastructure Built for Indonesian Business
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                From QR invoice generation to batch payroll execution, RIVO simplifies business payments with IDRX
+                From QR invoice generation to instant settlement, RIVO simplifies business payments with IDRX
               </p>
             </motion.div>
 
@@ -303,11 +300,10 @@ export default function Home() {
                 <Card className="h-full border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
                   <CardHeader>
                     <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <RiTeamLine className="h-6 w-6" />
                     </div>
                     <CardTitle className="text-2xl">For SME Owners</CardTitle>
                     <CardDescription>
-                      Pay invoices and process payroll with IDRX
+                      Pay invoices with IDRX
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -315,36 +311,6 @@ export default function Home() {
                       {featureCategories.forSMEOwners.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <RiCheckboxCircleLine className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-muted-foreground">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* For Staff/Agents */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <Card className="h-full border-success/30 bg-gradient-to-br from-success/5 to-transparent">
-                  <CardHeader>
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success">
-                      <RiWalletLine className="h-6 w-6" />
-                    </div>
-                    <CardTitle className="text-2xl">For Staff/Agents</CardTitle>
-                    <CardDescription>
-                      Receive payroll instantly with IDRX
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
-                      {featureCategories.forStaff.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <RiCheckboxCircleLine className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
                           <span className="text-sm text-muted-foreground">{feature}</span>
                         </li>
                       ))}
@@ -469,7 +435,7 @@ export default function Home() {
                 Ready to Transform Your Business Payments?
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Start paying invoices and processing payroll with IDRX in minutes. No credit card required.
+                Start paying invoices with IDRX in minutes. No credit card required.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
                 <Link href="/dashboard">

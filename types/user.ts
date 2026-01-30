@@ -1,4 +1,4 @@
-// RIVO platform types - Account Payable & Payroll solution
+// RIVO platform types - Account Payable solution
 
 export type UserRole = 'sme_owner' | 'vendor' | 'staff';
 
@@ -30,7 +30,7 @@ export interface Invoice {
     notes?: string;
 }
 
-// Employee interface for payroll management
+// Employee interface
 export interface Employee {
     id: string;
     name: string;
@@ -63,7 +63,7 @@ export interface Supplier {
 // Payment transaction interface
 export interface Payment {
     id: string;
-    type: 'invoice' | 'payroll' | 'supplier';
+    type: 'invoice' | 'supplier';
     amount: number;
     currency: 'IDRX' | 'USDC';
     recipient: string;
@@ -78,19 +78,6 @@ export interface Payment {
     supplierId?: string;
 }
 
-// Payroll batch interface
-export interface PayrollBatch {
-    id: string;
-    name: string;
-    employees: Employee[];
-    totalAmount: number;
-    currency: 'IDRX' | 'USDC';
-    status: 'draft' | 'processing' | 'completed' | 'failed';
-    createdAt: string;
-    processedAt?: string;
-    txHashes?: string[];
-}
-
 // Dashboard statistics
 export interface DashboardStats {
     totalInvoices: number;
@@ -98,7 +85,6 @@ export interface DashboardStats {
     pendingPayments: number;
     pendingPaymentAmount: number;
     activeEmployees: number;
-    monthlyPayrollAmount: number;
-    totalSuppliers: number;
     monthlySpend: number;
+    totalSuppliers: number;
 }

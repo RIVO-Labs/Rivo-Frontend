@@ -20,7 +20,7 @@ const faqs = [
   {
     question: "What is RIVO and how does it work?",
     answer:
-      "RIVO is a payment platform that simplifies account payable and payroll for Indonesian businesses. We enable companies to create QR invoices for suppliers and process batch payroll using IDRX stablecoin on Base. It's designed with familiar UX for Indonesian users while leveraging blockchain for transparency.",
+      "RIVO is a payment platform that simplifies account payable for Indonesian businesses. We enable companies to create QR invoices for suppliers and settle payments using IDRX stablecoin on Base. It's designed with familiar UX for Indonesian users while leveraging blockchain for transparency.",
     icon: "💰",
   },
   {
@@ -34,12 +34,6 @@ const faqs = [
     answer:
       "IDRX is a Rupiah-pegged stablecoin, meaning 1 IDRX ≈ 1 IDR. We use IDRX because it's designed for Indonesian businesses, eliminating currency conversion complexity. Payments settle on-chain in a currency that Indonesian users understand and trust.",
     icon: "🇮🇩",
-  },
-  {
-    question: "How does batch payroll work?",
-    answer:
-      "You can select multiple employees, set their salaries in IDRX, and execute all payments with one click. The system processes all transfers simultaneously on Base blockchain. Employees receive IDRX directly to their wallets instantly, with full transparency and on-chain verification.",
-    icon: "👥",
   },
   {
     question: "Do users need to understand blockchain?",
@@ -56,13 +50,13 @@ const faqs = [
   {
     question: "How does the AI assistant work?",
     answer:
-      "The AI assistant helps you create invoices and payroll with natural language. For example, say 'Pay all developers 12M IDRX for January' and it will populate the form. However, AI only helps with data entry—you always have full manual control over payment execution.",
+      "The AI assistant helps you create invoices with natural language. For example, say 'Create an invoice for 12M IDRX to Vendor A' and it will populate the form. However, AI only helps with data entry—you always have full manual control over payment execution.",
     icon: "⏰",
   },
   {
     question: "Can I integrate RIVO with my existing systems?",
     answer:
-      "RIVO is designed as a standalone payment solution for account payable and payroll. While we focus on simple UX, all transactions are recorded on-chain for easy reconciliation with your existing accounting systems. API integration is planned for future releases.",
+      "RIVO is designed as a standalone payment solution for account payable. While we focus on simple UX, all transactions are recorded on-chain for easy reconciliation with your existing accounting systems. API integration is planned for future releases.",
     icon: "❌",
   },
 ];

@@ -4,15 +4,33 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useAuth } from '@/hooks/useAuth';
-import { useUnlock } from '@/hooks/useUnlock';
 import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
-import { RiLockLine, RiLockUnlockLine } from 'react-icons/ri';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAccount, useChainId } from 'wagmi';
+import { baseSepolia } from 'viem/chains';
+import { useIDRXBalance } from '@/hooks/useIDRXApproval';
 
 export function Navbar() {
   const { user, logout, isAuthenticated, isProfileComplete } = useAuth();
-  const { isUnlocked, isUnlocking, unlockEncryption, lock } = useUnlock();
-  const isFreelancer = user?.role === 'freelancer';
-  const logoSrc = '/Rivologo.png';
+  const isVendor = user?.role === 'vendor';
+  const logoSrc = '/RivoLogo.png';
+  const { address } = useAccount();
+  const chainId = useChainId();
+  const { balanceFormatted } = useIDRXBalance(address as `0x${string}` | undefined);
+
+  const formatAddress = (addr?: string) => {
+    if (!addr) return 'Wallet';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const networkLabel = chainId === baseSepolia.id ? baseSepolia.name : `Chain ${chainId}`;
 
   const handleLogout = async () => {
     await logout();
@@ -51,28 +69,64 @@ export function Navbar() {
                 </Link>
 
                 {/* Role-specific navigation */}
-                {isFreelancer ? (
+                {isVendor ? (
                   <>
                     <Link
-                      href="/dashboard/agreements"
+                      href="/dashboard/invoices"
                       className="text-sm font-medium transition-colors hover:text-primary"
                     >
-                      My Agreements
+                      Invoices
                     </Link>
                     <Link
                       href="/dashboard/payments"
                       className="text-sm font-medium transition-colors hover:text-primary"
                     >
-                      Earnings
+                      Payments
+                    </Link>
+                    <Link
+                      href="/dashboard/settings"
+                      className="text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      Settings
                     </Link>
                   </>
                 ) : (
                   <>
                     <Link
-                      href="/dashboard/agreements"
+                      href="/dashboard/invoices"
                       className="text-sm font-medium transition-colors hover:text-primary"
                     >
-                      Team Agreements
+                      Invoices
+                    </Link>
+                    <Link
+                      href="/dashboard/suppliers"
+                      className="text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      Suppliers
+                    </Link>
+                    <Link
+                      href="/dashboard/employees"
+                      className="text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      Employees
+                    </Link>
+                    <Link
+                      href="/dashboard/payments"
+                      className="text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      Payments
+                    </Link>
+                    <Link
+                      href="/dashboard/analytics"
+                      className="text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      Analytics
+                    </Link>
+                    <Link
+                      href="/dashboard/settings"
+                      className="text-sm font-medium transition-colors hover:text-primary"
+                    >
+                      Settings
                     </Link>
                   </>
                 )}
@@ -84,46 +138,35 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
-              {user?.username && (
+              {(user?.businessName || user?.username) && (
                 <span className="text-sm hidden lg:inline">
-                  {user.username}
+                  {user.businessName || user.username}
                 </span>
               )}
-              {isProfileComplete && (
-                <>
-                  {/* Unlock/Lock Encryption Button */}
-                  {isUnlocked ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={lock}
-                      title="Click to lock encryption (key will persist until logout)"
-                      className="text-green-600 hover:text-green-700 border-green-600/20"
-                    >
-                      <RiLockUnlockLine className="h-4 w-4 mr-1" />
-                      Unlocked
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={unlockEncryption}
-                      disabled={isUnlocking}
-                      title="Sign to unlock private data encryption"
-                    >
-                      <RiLockLine className="h-4 w-4 mr-1" />
-                      {isUnlocking ? "Unlocking..." : "Unlock"}
-                    </Button>
-                  )}
-
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href="/dashboard/profile">Profile</Link>
-                  </Button>
-                </>
-              )}
-              <Button variant="outline" size="sm" onClick={logout}>
-                Log out
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard">Dashboard</Link>
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    {formatAddress(address)}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Wallet</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    Network: {networkLabel}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Balance: {balanceFormatted} IDRX
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : (
             <ConnectWalletButton />

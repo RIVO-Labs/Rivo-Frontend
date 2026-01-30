@@ -314,7 +314,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label>Username</Label>
+                  <Label>Contact Name</Label>
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span>{user?.username || 'Not available'}</span>
