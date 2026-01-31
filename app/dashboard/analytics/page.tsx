@@ -17,7 +17,7 @@ import {
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAccount } from 'wagmi';
-import { useInvoicePaidEvents } from '@/hooks/useRivoHubEvents';
+import { useInvoiceSettledEvents } from '@/hooks/useRivoHubEvents';
 
 interface DayVolume {
   day: string;
@@ -27,7 +27,7 @@ interface DayVolume {
 
 export default function AnalyticsPage() {
   const { address } = useAccount();
-  const { events: allInvoiceEvents, isLoading: invoicesLoading } = useInvoicePaidEvents();
+  const { events: allInvoiceEvents, isLoading: invoicesLoading } = useInvoiceSettledEvents();
   const isLoading = invoicesLoading;
 
   // Calculate statistics from blockchain events
@@ -336,7 +336,7 @@ export default function AnalyticsPage() {
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
                     <span className="text-sm font-medium">Network</span>
                   </div>
-                  <span className="text-sm font-bold text-green-600">Lisk Sepolia</span>
+                  <span className="text-sm font-bold text-green-600">Base Sepolia</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-lg bg-background/50">

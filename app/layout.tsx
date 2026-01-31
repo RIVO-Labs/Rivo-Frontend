@@ -27,7 +27,7 @@ const fontHeading = Montserrat({
 export const metadata: Metadata = {
   title: "Rivo - Programmable Work Agreements",
   description:
-    "Freedom of work, with trust locked and executed by code. Programmable work agreements for global freelance teams on Lisk blockchain.",
+    "Freedom of work, with trust locked and executed by code. Programmable work agreements for global freelance teams on Base blockchain.",
   generator: "v0.dev",
   icons: {
     icon: [

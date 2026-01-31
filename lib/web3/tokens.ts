@@ -1,5 +1,5 @@
 /**
- * Token addresses for Lisk Sepolia Testnet
+ * Token addresses for Base Sepolia Testnet
  */
 
 export const TOKENS = {

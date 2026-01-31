@@ -7,7 +7,7 @@ import { useAccount } from 'wagmi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useUserInvoiceEvents } from '@/hooks/useRivoHubEvents';
+import { useUserInvoiceEvents, useContractOwner } from '@/hooks/useRivoHubEvents';
 import { useIDRXBalance, formatIDRX } from '@/hooks/useIDRXApproval';
 import {
   RiQrCodeLine,
@@ -26,6 +26,11 @@ export default function DashboardPage() {
   const { address } = useAccount();
   const { events: invoiceEvents, isLoading: isLoadingInvoices } = useUserInvoiceEvents(address);
   const { balance } = useIDRXBalance(address);
+  const { owner: contractOwner } = useContractOwner();
+
+  // Check if current user is the contract owner (SME Owner/payer)
+  const isContractOwner = address && contractOwner &&
+    address.toLowerCase() === contractOwner.toLowerCase();
 
   // Calculate statistics from blockchain data
   const stats = useMemo(() => {
@@ -33,30 +38,31 @@ export default function DashboardPage() {
       return {
         paidInvoices: 0,
         totalPaid: "0",
+        totalReceived: "0",
         walletBalance: "0",
       };
     }
 
-    // Calculate invoice stats (where user is payer)
-    const userAsPayerInvoices = invoiceEvents.filter(
-      (e) => e.payer.toLowerCase() === address.toLowerCase()
-    );
-
-    const totalInvoicesPaid = userAsPayerInvoices.reduce((sum, event) => {
+    // All events returned are relevant to the user
+    // - If user is owner: all payments they made
+    // - If user is vendor: all payments they received
+    const totalAmount = invoiceEvents.reduce((sum, event) => {
       return sum + parseFloat(event.amountFormatted);
     }, 0);
 
-    const totalPaid = totalInvoicesPaid;
-
     return {
-      paidInvoices: userAsPayerInvoices.length,
-      totalPaid: totalPaid.toLocaleString("id-ID", {
+      paidInvoices: invoiceEvents.length,
+      totalPaid: isContractOwner ? totalAmount.toLocaleString("id-ID", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
-      }),
+      }) : "0",
+      totalReceived: !isContractOwner ? totalAmount.toLocaleString("id-ID", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }) : "0",
       walletBalance: formatIDRX(balance),
     };
-  }, [invoiceEvents, address, balance]);
+  }, [invoiceEvents, address, balance, isContractOwner]);
 
   // Combine and sort recent activity
   const recentActivity = useMemo(() => {
@@ -64,13 +70,15 @@ export default function DashboardPage() {
 
     // Add invoice events
     invoiceEvents.slice(0, 5).forEach((event) => {
-      const isUserPayer = event.payer.toLowerCase() === address?.toLowerCase();
+      // Determine description based on role
+      const description = isContractOwner
+        ? `Invoice payment to ${event.vendor.slice(0, 6)}...${event.vendor.slice(-4)}`
+        : `Payment received from contract owner`;
+
       activities.push({
         id: `invoice-${event.txHash}`,
         type: "invoice",
-        description: isUserPayer
-          ? `Invoice payment to ${event.vendor.slice(0, 6)}...${event.vendor.slice(-4)}`
-          : `Invoice payment from ${event.payer.slice(0, 6)}...${event.payer.slice(-4)}`,
+        description,
         amount: parseFloat(event.amountFormatted).toLocaleString("id-ID", {
           minimumFractionDigits: 0,
           maximumFractionDigits: 2,
@@ -87,7 +95,7 @@ export default function DashboardPage() {
 
     // Sort by timestamp descending
     return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
-  }, [invoiceEvents, address]);
+  }, [invoiceEvents, isContractOwner]);
 
   const isLoading = isLoadingInvoices;
 
@@ -106,7 +114,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <Badge className="mt-4 md:mt-0 bg-primary/10 text-primary border-primary/20">
-          Powered by Lisk Sepolia + IDRX
+          Powered by Base Sepolia + IDRX
         </Badge>
       </motion.div>
 
@@ -178,7 +186,9 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Invoice Payments</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isContractOwner ? "Invoices Paid" : "Payments Received"}
+            </CardTitle>
             <RiFileTextLine className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -188,7 +198,7 @@ export default function DashboardPage() {
               <>
                 <div className="text-2xl font-bold text-green-600">{stats.paidInvoices}</div>
                 <p className="text-xs text-muted-foreground">
-                  Total invoices paid
+                  {isContractOwner ? "Total invoices paid" : "Total payments received"}
                 </p>
                 <div className="flex items-center mt-2">
                   <RiCheckboxCircleLine className="h-4 w-4 text-green-500 mr-2" />
@@ -201,7 +211,9 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Processed</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isContractOwner ? "Total Paid" : "Total Received"}
+            </CardTitle>
             <RiArrowUpLine className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -209,7 +221,9 @@ export default function DashboardPage() {
               <RiLoader4Line className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-success">{stats.totalPaid} IDRX</div>
+                <div className="text-2xl font-bold text-success">
+                  {isContractOwner ? stats.totalPaid : stats.totalReceived} IDRX
+                </div>
                 <p className="text-xs text-muted-foreground">
                   All time transactions
                 </p>

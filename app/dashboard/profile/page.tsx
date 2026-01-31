@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RiAlertLine, RiCheckLine } from "react-icons/ri";
 
 export default function ProfilePage() {
-  const { user, isProfileComplete } = useAuth();
+  const { user, isProfileComplete, refreshUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -113,6 +113,9 @@ export default function ProfilePage() {
 
         const addressKey = user.address.toLowerCase();
         localStorage.setItem(`user_${addressKey}`, JSON.stringify(userProfile));
+
+        // Refresh user data in context so isProfileComplete updates
+        await refreshUser();
 
         toast({
           title: "Profile Updated!",
@@ -214,6 +217,23 @@ export default function ProfilePage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Used as the primary contact on agreements
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">
+                    Email <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={formData.email}
+                    onChange={handleChange('email')}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for notifications and communication
                   </p>
                 </div>
 

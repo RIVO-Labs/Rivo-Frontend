@@ -25,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useRivoHub } from "@/hooks/useRivoHub";
 import { useIDRXBalance, useIDRXAllowance, useApproveIDRX, hasSufficientAllowance, formatIDRX } from "@/hooks/useIDRXApproval";
-import { useUserInvoiceEvents } from "@/hooks/useRivoHubEvents";
+import { useUserInvoiceEvents, useContractOwner } from "@/hooks/useRivoHubEvents";
 import { useQRInvoicesList } from "@/hooks/usePinataList";
 import {
   RiQrCodeLine,
@@ -91,8 +91,14 @@ export default function InvoicesPage() {
     isUnlocked ? getEncryptionKey() : null
   );
 
-  // Check if IDRX is approved
-  const isApproved = useMemo(() => {
+  // Check if IDRX has ANY approval (for wallet status display)
+  const hasAnyApproval = useMemo(() => {
+    if (!allowance) return false;
+    return allowance > 0n;
+  }, [allowance]);
+
+  // Check if IDRX is approved for specific amount (for payment form)
+  const isApprovedForAmount = useMemo(() => {
     if (!allowance || !formData.amount) return false;
     return hasSufficientAllowance(allowance, formData.amount);
   }, [allowance, formData.amount]);
@@ -100,13 +106,19 @@ export default function InvoicesPage() {
   // Refresh allowance when approval is successful
   useEffect(() => {
     if (isApproveSuccess) {
-      refetchAllowance();
+      // Add small delay to ensure blockchain state has propagated
+      const timer = setTimeout(() => {
+        refetchAllowance();
+      }, 1000);
+
       toast({
         title: "Approval Successful",
         description: "You can now pay invoices with IDRX",
       });
+
+      return () => clearTimeout(timer);
     }
-  }, [isApproveSuccess]);
+  }, [isApproveSuccess, refetchAllowance, toast]);
 
   // Refresh events and balance when payment is successful
   useEffect(() => {
@@ -174,19 +186,15 @@ export default function InvoicesPage() {
       return;
     }
 
-    // Check if encryption key is available
-    const encryptionKey = getEncryptionKey();
-    if (!encryptionKey) {
-      await unlockEncryption();
-    }
-    const activeKey = getEncryptionKey();
+    // Check if encryption key is available, or unlock if needed
+    let activeKey = getEncryptionKey();
     if (!activeKey) {
-      toast({
-        title: "Encryption Key Not Available",
-        description: "Please unlock your data storage first.",
-        variant: "destructive",
-      });
-      return;
+      // Prompt user to sign message to unlock encryption
+      activeKey = await unlockEncryption();
+      if (!activeKey) {
+        // User cancelled or unlock failed - error toast already shown by unlockEncryption
+        return;
+      }
     }
 
     setIsEncrypting(true);
@@ -292,7 +300,7 @@ export default function InvoicesPage() {
       return;
     }
 
-    if (!isApproved) {
+    if (!isApprovedForAmount) {
       toast({
         title: "Approval Required",
         description: "Please approve IDRX spending first",
@@ -303,18 +311,14 @@ export default function InvoicesPage() {
 
     try {
       // Build invoice metadata (stored on IPFS) before on-chain payment
-      const encryptionKey = getEncryptionKey();
-      if (!encryptionKey) {
-        await unlockEncryption();
-      }
-      const activeKey = getEncryptionKey();
+      let activeKey = getEncryptionKey();
       if (!activeKey) {
-        toast({
-          title: "Encryption Key Not Available",
-          description: "Please unlock your data storage first.",
-          variant: "destructive",
-        });
-        return;
+        // Prompt user to sign message to unlock encryption
+        activeKey = await unlockEncryption();
+        if (!activeKey) {
+          // User cancelled or unlock failed - error toast already shown by unlockEncryption
+          return;
+        }
       }
 
       const qrInvoiceData = {
@@ -364,26 +368,29 @@ export default function InvoicesPage() {
     }
   };
 
+  // Get contract owner for role-based display
+  const { owner: contractOwner } = useContractOwner();
+  const isContractOwner = address && contractOwner &&
+    address.toLowerCase() === contractOwner.toLowerCase();
+
   // Calculate statistics from events
   const stats = useMemo(() => {
     if (!address) return { totalPaid: "0", totalPending: "0", count: 0 };
 
-    // Filter events where user is payer
-    const userAsPayer = invoiceEvents.filter(
-      (e) => e.payer.toLowerCase() === address.toLowerCase()
-    );
-
-    const totalPaid = userAsPayer.reduce((sum, event) => {
+    // All events returned are relevant to the user
+    // - If user is owner: all payments they made
+    // - If user is vendor: all payments they received
+    const totalAmount = invoiceEvents.reduce((sum, event) => {
       return sum + parseFloat(event.amountFormatted);
     }, 0);
 
     return {
-      totalPaid: totalPaid.toLocaleString("id-ID", {
+      totalPaid: totalAmount.toLocaleString("id-ID", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }),
       totalPending: "0", // Cannot determine pending invoices from blockchain
-      count: userAsPayer.length,
+      count: invoiceEvents.length,
     };
   }, [invoiceEvents, address]);
 
@@ -465,7 +472,7 @@ export default function InvoicesPage() {
                     <p className="text-2xl font-bold">{formatIDRX(balance)} IDRX</p>
                   </div>
                 </div>
-                {!isApproved && (
+                {!hasAnyApproval && (
                   <Button
                     onClick={handleApprove}
                     disabled={isApproving || isApprovingConfirming}
@@ -484,7 +491,7 @@ export default function InvoicesPage() {
                     )}
                   </Button>
                 )}
-                {isApproved && (
+                {hasAnyApproval && (
                   <Badge className="bg-green-500/10 text-green-700 border-green-500/20">
                     <RiCheckboxCircleLine className="mr-1 h-4 w-4" />
                     IDRX Approved
@@ -599,7 +606,7 @@ export default function InvoicesPage() {
             ) : (
               <>
                 <Button
-                  onClick={!isApproved ? handleApprove : handlePayInvoice}
+                  onClick={!isApprovedForAmount ? handleApprove : handlePayInvoice}
                   disabled={isPending || isConfirming || isEncrypting}
                 >
                   {isEncrypting || isPending || isConfirming ? (
@@ -607,7 +614,7 @@ export default function InvoicesPage() {
                       <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
                       {isEncrypting ? 'Preparing Payment...' : 'Processing...'}
                     </>
-                  ) : !isApproved ? (
+                  ) : !isApprovedForAmount ? (
                     <>
                       <RiCheckLine className="mr-2 h-4 w-4" />
                       Approve IDRX
@@ -780,7 +787,7 @@ export default function InvoicesPage() {
                         size="sm"
                         onClick={() => {
                           window.open(
-                            `https://sepolia-blockscout.lisk.com/tx/${invoice.txHash}`,
+                            `https://sepolia.basescan.org/tx/${invoice.txHash}`,
                             "_blank"
                           );
                         }}

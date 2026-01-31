@@ -92,9 +92,9 @@ export default function PaymentsPage() {
 
   const isLoading = invoicesLoading;
 
-  // Open transaction in Lisk Sepolia block explorer
+  // Open transaction in Base Sepolia block explorer
   const openTxExplorer = (txHash: string) => {
-    window.open(`https://sepolia-blockscout.lisk.com/tx/${txHash}`, '_blank');
+    window.open(`https://sepolia.basescan.org/tx/${txHash}`, '_blank');
   };
 
   return (

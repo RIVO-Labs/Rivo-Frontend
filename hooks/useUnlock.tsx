@@ -26,7 +26,7 @@ interface UnlockContextType {
   error: string | null;
 
   // Functions
-  unlockEncryption: () => Promise<void>;
+  unlockEncryption: () => Promise<Uint8Array | null>;
   getEncryptionKey: () => Uint8Array | null;
   lock: () => void;
 }
@@ -58,7 +58,8 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
   }, [isConnected]);
 
   // Unlock encryption by signing a message and deriving key
-  const unlockEncryption = useCallback(async () => {
+  // Returns the encryption key on success, null on failure
+  const unlockEncryption = useCallback(async (): Promise<Uint8Array | null> => {
     if (!address) {
       const msg = "Wallet not connected";
       setError(msg);
@@ -67,7 +68,7 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
         description: msg,
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     setIsUnlocking(true);
@@ -91,6 +92,7 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
       });
 
       console.log("✅ Encryption unlocked successfully");
+      return key;
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : "Failed to unlock encryption";
@@ -103,20 +105,23 @@ export function UnlockProvider({ children }: { children: ReactNode }) {
       });
 
       console.error("❌ Unlock failed:", err);
+      return null;
     } finally {
       setIsUnlocking(false);
     }
   }, [address, toast]);
 
   // Get current encryption key from session
+  // Note: We check sessionStorage directly instead of relying on isUnlocked state
+  // to avoid race conditions when calling after unlockEncryption()
   const getEncryptionKey = useCallback((): Uint8Array | null => {
-    if (!isUnlocked) {
-      console.warn("⚠️ Encryption not unlocked yet");
+    const key = getEncryptionKeyFromSession();
+    if (!key) {
+      console.warn("⚠️ Encryption key not available in session");
       return null;
     }
-
-    return getEncryptionKeyFromSession();
-  }, [isUnlocked]);
+    return key;
+  }, []);
 
   // Lock and clear encryption key
   const lock = useCallback(() => {

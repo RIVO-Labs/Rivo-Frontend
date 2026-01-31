@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { config, chain } from "@/lib/web3/config";
 import { useTheme } from "next-themes";
+import { NetworkGuard } from "@/components/NetworkGuard";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +32,7 @@ export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
             },
           }}
         >
-          {children}
+          <NetworkGuard>{children}</NetworkGuard>
         </OnchainKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

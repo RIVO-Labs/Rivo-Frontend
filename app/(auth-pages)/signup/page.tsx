@@ -203,6 +203,16 @@ export default function SignupPage() {
       // Skip on-chain publish on signup to avoid immediate wallet payment prompt.
       storeWalletIPFSMapping(address, ipfsCID);
 
+      // Also save to localStorage as fallback for useAuth (since IPFS profile is encrypted
+      // and syncWalletAuth uses allowDecrypt: false which returns null for encrypted profiles)
+      const localUserData = {
+        ...userProfile,
+        roleSelected: true,
+        isProfileComplete: true,
+      };
+      localStorage.setItem(`user_${addressKey}`, JSON.stringify(localUserData));
+      localStorage.setItem(`role_${addressKey}`, profileData.role);
+
       console.log("Profile saved to IPFS with CID:", ipfsCID);
 
       toast({

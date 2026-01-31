@@ -366,10 +366,10 @@ export default function Home() {
                 <RiShieldCheckLine className="h-8 w-8" />
               </div>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-6">
-                Built on Lisk Blockchain
+                Built on Base Blockchain
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                RIVO leverages Lisk's EVM-compatible blockchain for low-cost, fast, and secure smart contract execution. Your payments are transparent, immutable, and automatically enforced by code.
+                RIVO leverages Base's EVM-compatible blockchain for low-cost, fast, and secure smart contract execution. Your payments are transparent, immutable, and automatically enforced by code.
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="flex flex-col items-center">

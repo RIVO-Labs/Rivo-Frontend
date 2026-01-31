@@ -76,7 +76,7 @@ export const coreFeatures = [
   },
   {
     title: "Blockchain Verification",
-    description: "All payments recorded on Lisk blockchain with complete transparency. Immutable audit trail for compliance and accounting.",
+    description: "All payments recorded on Base blockchain with complete transparency. Immutable audit trail for compliance and accounting.",
     icon: "status",
   },
   {
