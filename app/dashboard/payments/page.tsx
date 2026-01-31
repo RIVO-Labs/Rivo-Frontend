@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,52 +15,20 @@ import {
   RiCheckboxCircleLine,
   RiTimeLine,
   RiQrCodeLine,
-  RiTeamLine,
 } from 'react-icons/ri';
+import { useAccount } from 'wagmi';
+import { useUserInvoiceEvents } from '@/hooks/useRivoHubEvents';
 
-// Dummy payment data
-const payments = [
-  {
-    id: "PAY-001",
-    type: "payroll",
-    description: "Monthly Payroll - January 2024",
-    recipient: "15 Employees",
-    amount: "187.500.000 IDRX",
-    status: "completed",
-    date: "2024-01-01",
-    txHash: "0x1234567890abcdef1234567890abcdef12345678",
-  },
-  {
-    id: "PAY-002", 
-    type: "invoice",
-    description: "Office Equipment Invoice",
-    recipient: "PT Global Supplies",
-    amount: "15.500.000 IDRX",
-    status: "completed",
-    date: "2024-01-21",
-    txHash: "0xabcdef1234567890abcdef1234567890abcdef12",
-  },
-  {
-    id: "PAY-003",
-    type: "invoice", 
-    description: "Marketing Campaign Payment",
-    recipient: "Digital Marketing Agency",
-    amount: "8.750.000 IDRX",
-    status: "pending",
-    date: "2024-01-22",
-    txHash: null,
-  },
-  {
-    id: "PAY-004",
-    type: "payroll",
-    description: "Monthly Payroll - December 2023", 
-    recipient: "14 Employees",
-    amount: "175.000.000 IDRX",
-    status: "completed",
-    date: "2023-12-01",
-    txHash: "0x567890abcdef567890abcdef567890abcdef5678",
-  },
-];
+interface Payment {
+  id: string;
+  type: 'invoice';
+  status: 'completed';
+  description: string;
+  recipient: string;
+  amount: string;
+  date: string;
+  txHash: string;
+}
 
 const statusColors = {
   completed: "bg-green-500/10 text-green-700 border-green-500/20",
@@ -69,13 +37,37 @@ const statusColors = {
 };
 
 const typeColors = {
-  payroll: "bg-blue-500/10 text-blue-700 border-blue-500/20", 
   invoice: "bg-purple-500/10 text-purple-700 border-purple-500/20",
 };
 
 export default function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
+
+  const { address } = useAccount();
+  const { events: invoiceEvents, isLoading: invoicesLoading } = useUserInvoiceEvents(address);
+
+  // Combine and map blockchain events to payment format
+  const payments = useMemo(() => {
+    const allPayments: Payment[] = [];
+
+    // Map invoice events
+    invoiceEvents.forEach((event) => {
+      allPayments.push({
+        id: event.invoiceId.slice(0, 10),
+        type: 'invoice',
+        status: 'completed',
+        description: `Invoice Payment`,
+        recipient: event.vendor,
+        amount: `${parseFloat(event.amountFormatted).toFixed(2)} IDRX`,
+        date: new Date(event.timestamp * 1000).toLocaleString(),
+        txHash: event.txHash,
+      });
+    });
+
+    // Sort by timestamp descending (newest first) - already sorted by hooks
+    return allPayments;
+  }, [invoiceEvents]);
 
   const filteredPayments = payments.filter((payment) => {
     const matchesSearch = payment.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,15 +76,26 @@ export default function PaymentsPage() {
     return matchesSearch && matchesType;
   });
 
-  const totalPayments = payments.filter(p => p.status === 'completed').reduce((sum, p) => 
+  const totalPayments = payments.reduce((sum, p) =>
     sum + parseFloat(p.amount.replace(/[^\d.]/g, '')), 0
   );
 
-  const thisMonthPayments = payments.filter(p => 
-    p.status === 'completed' && p.date.startsWith('2024-01')
-  ).reduce((sum, p) => 
+  // Calculate this month payments
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const thisMonthPayments = payments.filter(p => {
+    const paymentDate = new Date(p.date);
+    return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+  }).reduce((sum, p) =>
     sum + parseFloat(p.amount.replace(/[^\d.]/g, '')), 0
   );
+
+  const isLoading = invoicesLoading;
+
+  // Open transaction in Base Sepolia block explorer
+  const openTxExplorer = (txHash: string) => {
+    window.open(`https://sepolia.basescan.org/tx/${txHash}`, '_blank');
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -136,7 +139,6 @@ export default function PaymentsPage() {
           className="px-3 py-2 border rounded-md bg-background"
         >
           <option value="all">All Types</option>
-          <option value="payroll">Payroll</option>
           <option value="invoice">Invoices</option>
         </select>
       </motion.div>
@@ -153,7 +155,13 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Payments</p>
-                <p className="text-2xl font-bold">{(totalPayments / 1000000).toFixed(1)}M IDRX</p>
+                <p className="text-2xl font-bold">
+                  {totalPayments >= 1000000
+                    ? `${(totalPayments / 1000000).toFixed(2)}M`
+                    : totalPayments >= 1000
+                    ? `${(totalPayments / 1000).toFixed(2)}K`
+                    : totalPayments.toFixed(2)} IDRX
+                </p>
               </div>
               <RiMoneyDollarCircleLine className="h-8 w-8 text-green-500" />
             </div>
@@ -165,7 +173,13 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">This Month</p>
-                <p className="text-2xl font-bold">{(thisMonthPayments / 1000000).toFixed(1)}M IDRX</p>
+                <p className="text-2xl font-bold">
+                  {thisMonthPayments >= 1000000
+                    ? `${(thisMonthPayments / 1000000).toFixed(2)}M`
+                    : thisMonthPayments >= 1000
+                    ? `${(thisMonthPayments / 1000).toFixed(2)}K`
+                    : thisMonthPayments.toFixed(2)} IDRX
+                </p>
               </div>
               <RiCheckboxCircleLine className="h-8 w-8 text-blue-500" />
             </div>
@@ -177,7 +191,7 @@ export default function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Transactions</p>
-                <p className="text-2xl font-bold">{payments.filter(p => p.status === 'completed').length}</p>
+                <p className="text-2xl font-bold">{payments.length}</p>
               </div>
               <RiTimeLine className="h-8 w-8 text-purple-500" />
             </div>
@@ -192,7 +206,29 @@ export default function PaymentsPage() {
         transition={{ delay: 0.3 }}
         className="space-y-4"
       >
-        {filteredPayments.map((payment, index) => (
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <p className="text-muted-foreground">Loading payments from blockchain...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : filteredPayments.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <RiMoneyDollarCircleLine className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No Payments Found</h3>
+              <p className="text-muted-foreground">
+                {payments.length === 0
+                  ? "No payment transactions yet. Start by paying an invoice."
+                  : "No payments match your search criteria."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredPayments.map((payment, index) => (
           <motion.div
             key={payment.id}
             initial={{ opacity: 0, x: -20 }}
@@ -203,11 +239,7 @@ export default function PaymentsPage() {
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    {payment.type === 'payroll' ? (
-                      <RiTeamLine className="h-8 w-8 text-blue-500" />
-                    ) : (
-                      <RiQrCodeLine className="h-8 w-8 text-purple-500" />
-                    )}
+                    <RiQrCodeLine className="h-8 w-8 text-purple-500" />
                     
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -240,7 +272,11 @@ export default function PaymentsPage() {
                         <span className="text-sm text-muted-foreground">
                           {payment.txHash.slice(0, 10)}...{payment.txHash.slice(-8)}
                         </span>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openTxExplorer(payment.txHash)}
+                        >
                           <RiExternalLinkLine className="h-4 w-4" />
                         </Button>
                       </div>
@@ -250,7 +286,8 @@ export default function PaymentsPage() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+          ))
+        )}
       </motion.div>
     </div>
   );

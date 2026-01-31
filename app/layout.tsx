@@ -2,12 +2,15 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Poppins, Montserrat } from "next/font/google";
 import "./globals.css";
+import "@coinbase/onchainkit/styles.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/navbar";
 import { AuthProvider } from "@/hooks/useAuth";
+import { UnlockProvider } from "@/hooks/useUnlock";
 import { Web3Provider } from "@/components/providers/Web3Provider";
+import { WalletIsland } from "@coinbase/onchainkit/wallet";
 
 const fontSans = Poppins({
   subsets: ["latin"],
@@ -24,7 +27,7 @@ const fontHeading = Montserrat({
 export const metadata: Metadata = {
   title: "Rivo - Programmable Work Agreements",
   description:
-    "Freedom of work, with trust locked and executed by code. Programmable work agreements for global freelance teams on Lisk blockchain.",
+    "Freedom of work, with trust locked and executed by code. Programmable work agreements for global freelance teams on Base blockchain.",
   generator: "v0.dev",
   icons: {
     icon: [
@@ -57,9 +60,12 @@ export default function RootLayout({
         >
           <Web3Provider>
             <AuthProvider>
-              <Navbar />
-              {children}
-              <Toaster />
+              <UnlockProvider>
+                <Navbar />
+                {children}
+                <Toaster />
+                <WalletIsland />
+              </UnlockProvider>
             </AuthProvider>
           </Web3Provider>
         </ThemeProvider>

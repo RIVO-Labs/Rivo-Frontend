@@ -19,6 +19,7 @@ import {
   RiDashboardLine,
   RiCheckboxCircleLine,
   RiBriefcaseLine,
+  RiTeamLine,
 } from "react-icons/ri";
 import {
   Card,
@@ -38,38 +39,39 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface ProfileData {
   email: string;
-  username: string;
-  firstName: string;
-  lastName: string;
-  role: "freelancer" | "company";
+  contactName: string;
+  businessName: string;
+  businessCategory: string;
+  role: "sme_owner" | "vendor";
 }
 
 export default function SignupPage() {
   const [profileData, setProfileData] = useState<ProfileData>({
     email: "",
-    username: "",
-    firstName: "",
-    lastName: "",
-    role: "freelancer",
+    contactName: "",
+    businessName: "",
+    businessCategory: "",
+    role: "sme_owner",
   });
+  const [step, setStep] = useState<"role" | "details">("role");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
   const { toast } = useToast();
   const { address, isConnected } = useAccount();
-  const { user, isProfileComplete, isLoading } = useAuth();
-  const { disconnect } = useDisconnect();
+  const { user, isProfileComplete, isLoading, refreshUser } = useAuth();
 
   // Pre-fill form if user already connected but profile incomplete
   useEffect(() => {
     if (isConnected && user && !isProfileComplete) {
       setProfileData({
         email: user.email || "",
-        username: user.username || "",
-        firstName: "",
-        lastName: "",
-        role: user.role || "freelancer",
+        contactName: user.username || "",
+        businessName: user.businessName || "",
+        businessCategory: user.businessCategory || "",
+        role: user.role || "sme_owner",
       });
+      setStep(user.roleSelected ? "details" : "role");
     }
   }, [isConnected, user, isProfileComplete]);
 
@@ -90,7 +92,7 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     // Validation
-    if (!profileData.email || !profileData.username) {
+    if (!profileData.email || !profileData.contactName || !profileData.businessName || !profileData.businessCategory) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -110,13 +112,19 @@ export default function SignupPage() {
       return;
     }
 
-    await saveUserProfile();
-    disconnect();
-    router.push("/");
+    const success = await saveUserProfile();
+
+    if (success) {
+      // Refresh user data to sync the newly created profile
+      await refreshUser();
+
+      // Redirect to dashboard - user is now logged in automatically
+      router.push("/dashboard");
+    }
   };
 
-  const saveUserProfile = async () => {
-    if (!address) return;
+  const saveUserProfile = async (): Promise<boolean> => {
+    if (!address) return false;
 
     // Check if wallet is already registered (check both IPFS and localStorage)
     const addressKey = address.toLowerCase();
@@ -131,11 +139,11 @@ export default function SignupPage() {
         // Wallet already has an account - show error and stay on signup page
         toast({
           title: "Wallet Already Registered",
-          description: `This wallet is already registered to ${existingUser?.username || 'an account'}. Please disconnect and use a different wallet.`,
+          description: `This wallet is already registered to ${existingUser?.businessName || existingUser?.username || 'an account'}. Please disconnect and use a different wallet.`,
           variant: "destructive",
         });
 
-        return;
+        return false;
       } catch (error) {
         console.error('Failed to parse existing user data:', error);
       }
@@ -143,75 +151,87 @@ export default function SignupPage() {
 
     // Prepare profile data
     const userProfile = {
-      username: profileData.username,
+      username: profileData.contactName,
       email: profileData.email,
-      firstName: profileData.firstName,
-      lastName: profileData.lastName,
+      firstName: "",
+      lastName: "",
+      businessName: profileData.businessName,
+      businessCategory: profileData.businessCategory,
       role: profileData.role,
       walletAddress: address,
       createdAt: new Date().toISOString(),
     };
 
     try {
-      // Save locally first to avoid redirect loops if IPFS or wallet actions fail.
-      localStorage.setItem(`user_${addressKey}`, JSON.stringify(userProfile));
+      if (!isPinataConfigured()) {
+        toast({
+          title: "IPFS Not Configured",
+          description: "Set your Pinata credentials to save profiles on IPFS.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Uploading to IPFS...",
+        description: "Saving your profile to decentralized storage",
+      });
+
+      if (typeof window === "undefined" || !window.ethereum?.request) {
+        throw new Error("Wallet does not support encryption keys.");
+      }
+
+      const publicKey = await window.ethereum.request({
+        method: "eth_getEncryptionPublicKey",
+        params: [address],
+      });
+
+      if (typeof publicKey !== "string") {
+        throw new Error("Failed to get wallet encryption key.");
+      }
+
+      const passphrase = generatePassphrase();
+      const encryptedPassphrase = encryptPassphraseForWallet(publicKey, passphrase);
+      const ipfsCID = await uploadEncryptedProfileToIPFS(
+        userProfile,
+        passphrase,
+        { [address.toLowerCase()]: encryptedPassphrase },
+        [address.toLowerCase()],
+      );
+
+      // Store wallet to IPFS CID mapping (local) only.
+      // Skip on-chain publish on signup to avoid immediate wallet payment prompt.
+      storeWalletIPFSMapping(address, ipfsCID);
+
+      // Also save to localStorage as fallback for useAuth (since IPFS profile is encrypted
+      // and syncWalletAuth uses allowDecrypt: false which returns null for encrypted profiles)
+      const localUserData = {
+        ...userProfile,
+        roleSelected: true,
+        isProfileComplete: true,
+      };
+      localStorage.setItem(`user_${addressKey}`, JSON.stringify(localUserData));
       localStorage.setItem(`role_${addressKey}`, profileData.role);
 
-      // Try to save to IPFS if Pinata is configured
-      if (isPinataConfigured()) {
-        toast({
-          title: "Uploading to IPFS...",
-          description: "Saving your profile to decentralized storage",
-        });
+      console.log("Profile saved to IPFS with CID:", ipfsCID);
 
-        if (typeof window === "undefined" || !window.ethereum?.request) {
-          throw new Error("Wallet does not support encryption keys.");
-        }
+      toast({
+        title: "Account Created!",
+        description: `Welcome to Rivo! Profile saved to IPFS (CID: ${ipfsCID.slice(0, 8)}...). You can publish on-chain later.`,
+      });
 
-        const publicKey = await window.ethereum.request({
-          method: "eth_getEncryptionPublicKey",
-          params: [address],
-        });
-
-        if (typeof publicKey !== "string") {
-          throw new Error("Failed to get wallet encryption key.");
-        }
-
-        const passphrase = generatePassphrase();
-        const encryptedPassphrase = encryptPassphraseForWallet(publicKey, passphrase);
-        const ipfsCID = await uploadEncryptedProfileToIPFS(
-          userProfile,
-          passphrase,
-          { [address.toLowerCase()]: encryptedPassphrase },
-          [address.toLowerCase()],
-        );
-
-        // Store wallet to IPFS CID mapping (local) only.
-        // Skip on-chain publish on signup to avoid immediate wallet payment prompt.
-        storeWalletIPFSMapping(address, ipfsCID);
-
-        console.log("Profile saved to IPFS with CID:", ipfsCID);
-
-        toast({
-          title: "Account Created!",
-          description: `Welcome to Rivo! Profile saved to IPFS (CID: ${ipfsCID.slice(0, 8)}...). You can publish on-chain later.`,
-        });
-      } else {
-        toast({
-          title: "Account Created!",
-          description: "Welcome to Rivo! Your account has been created successfully.",
-        });
-      }
+      return true;
 
     } catch (error) {
       console.error("Error saving profile:", error);
 
       toast({
-        title: "Account Created (Offline Mode)",
-        description: "Profile saved locally. IPFS upload failed but you can still use the app.",
+        title: "IPFS Upload Failed",
+        description: "Profile was not saved. Please try again.",
         variant: "destructive",
       });
 
+      return false;
     }
   };
 
@@ -277,128 +297,155 @@ export default function SignupPage() {
               <CardHeader className="space-y-1 text-center pb-4">
                 <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent flex items-center justify-center gap-3">
                   <RiAccountCircleLine className="h-8 w-8 text-primary" />
-                  Create Your Profile
+                  {step === "role" ? "Choose Your Role" : "Create Your Profile"}
                 </CardTitle>
                 <CardDescription className="text-base mt-3">
-                  Tell us about yourself to get started
+                  {step === "role"
+                    ? "Select how you will use Rivo"
+                    : "Tell us about your business to get started"}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="px-8 pb-6">
-                <form onSubmit={handleProfileSubmit} className="space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
-                      <RiMailLine className="h-4 w-4 text-primary" />
-                      Email Address *
-                    </Label>
-                    <div className="relative">
-                      <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                {step === "role" ? (
+                  <div className="space-y-5">
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2 text-sm font-medium">
+                        <RiBriefcaseLine className="h-4 w-4 text-primary" />
+                        I am a *
+                      </Label>
+                      <RadioGroup
+                        value={profileData.role}
+                        onValueChange={(value: "sme_owner" | "vendor") =>
+                          setProfileData({ ...profileData, role: value })
+                        }
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        <Label
+                          htmlFor="sme_owner"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                        >
+                          <RadioGroupItem value="sme_owner" id="sme_owner" className="sr-only" />
+                          <RiBriefcaseLine className="mb-2 h-5 w-5" />
+                          <span className="font-medium text-sm">Business Owner</span>
+                          <span className="text-xs text-muted-foreground mt-1 text-center">Pay invoices & suppliers</span>
+                        </Label>
+                        <Label
+                          htmlFor="vendor"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                        >
+                          <RadioGroupItem value="vendor" id="vendor" className="sr-only" />
+                          <RiUserLine className="mb-2 h-5 w-5" />
+                          <span className="font-medium text-sm">Vendor</span>
+                          <span className="text-xs text-muted-foreground mt-1 text-center">Receive payments & invoices</span>
+                        </Label>
+                      </RadioGroup>
+                    </div>
+
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="pt-2"
+                    >
+                      <Button
+                        type="button"
+                        onClick={() => setStep("details")}
+                        className="w-full h-12 bg-gradient-to-r from-primary to-cyan-400 hover:from-primary/90 hover:to-cyan-400/90 text-white font-semibold text-base shadow-lg"
+                      >
+                        Continue
+                      </Button>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleProfileSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+                        <RiMailLine className="h-4 w-4 text-primary" />
+                        Email Address *
+                      </Label>
+                      <div className="relative">
+                        <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          value={profileData.email}
+                          onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                          className="pl-10 h-11 border-2 focus:border-primary"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contactName" className="flex items-center gap-2 text-sm font-medium">
+                        <RiUserLine className="h-4 w-4 text-primary" />
+                        Contact Name *
+                      </Label>
+                      <div className="relative">
+                        <RiUserLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                          id="contactName"
+                          type="text"
+                          placeholder="Full name of contact person"
+                          value={profileData.contactName}
+                          onChange={(e) => setProfileData({ ...profileData, contactName: e.target.value })}
+                          className="pl-10 h-11 border-2 focus:border-primary"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName" className="flex items-center gap-2 text-sm font-medium">
+                        <RiTeamLine className="h-4 w-4 text-primary" />
+                        {profileData.role === "sme_owner" ? "Business Name" : "Vendor Name"} *
+                      </Label>
                       <Input
-                        id="email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                        className="pl-10 h-11 border-2 focus:border-primary"
+                        id="businessName"
+                        type="text"
+                        placeholder={profileData.role === "sme_owner" ? "Your company name" : "Your store or vendor name"}
+                        value={profileData.businessName}
+                        onChange={(e) => setProfileData({ ...profileData, businessName: e.target.value })}
+                        className="h-11 border-2 focus:border-primary"
                         required
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="username" className="flex items-center gap-2 text-sm font-medium">
-                      <RiUserLine className="h-4 w-4 text-primary" />
-                      Username *
-                    </Label>
-                    <div className="relative">
-                      <RiUserLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <div className="space-y-2">
+                      <Label htmlFor="businessCategory" className="flex items-center gap-2 text-sm font-medium">
+                        <RiBriefcaseLine className="h-4 w-4 text-primary" />
+                        {profileData.role === "sme_owner" ? "Industry" : "Service Category"} *
+                      </Label>
                       <Input
-                        id="username"
+                        id="businessCategory"
                         type="text"
-                        placeholder="Choose a username"
-                        value={profileData.username}
-                        onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                        className="pl-10 h-11 border-2 focus:border-primary"
+                        placeholder={profileData.role === "sme_owner" ? "e.g. Logistics, F&B, Retail" : "e.g. Catering, Materials, Services"}
+                        value={profileData.businessCategory}
+                        onChange={(e) => setProfileData({ ...profileData, businessCategory: e.target.value })}
+                        className="h-11 border-2 focus:border-primary"
                         required
                       />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName" className="text-sm font-medium">
-                        First Name
-                      </Label>
-                      <Input
-                        id="firstName"
-                        type="text"
-                        placeholder="First name"
-                        value={profileData.firstName}
-                        onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                        className="h-11 border-2 focus:border-primary"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName" className="text-sm font-medium">
-                        Last Name
-                      </Label>
-                      <Input
-                        id="lastName"
-                        type="text"
-                        placeholder="Last name"
-                        value={profileData.lastName}
-                        onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                        className="h-11 border-2 focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2 text-sm font-medium">
-                      <RiBriefcaseLine className="h-4 w-4 text-primary" />
-                      I am a *
-                    </Label>
-                    <RadioGroup
-                      value={profileData.role}
-                      onValueChange={(value: "freelancer" | "company") =>
-                        setProfileData({ ...profileData, role: value })
-                      }
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <Label
-                        htmlFor="freelancer"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                    <div className="flex items-center gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setStep("role")}
+                        className="h-11"
                       >
-                        <RadioGroupItem value="freelancer" id="freelancer" className="sr-only" />
-                        <RiUserLine className="mb-3 h-6 w-6" />
-                        <span className="font-medium">Freelancer</span>
-                        <span className="text-xs text-muted-foreground mt-1">Find work</span>
-                      </Label>
-                      <Label
-                        htmlFor="company"
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                        Back
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="flex-1 h-12 bg-gradient-to-r from-primary to-cyan-400 hover:from-primary/90 hover:to-cyan-400/90 text-white font-semibold text-base shadow-lg"
                       >
-                        <RadioGroupItem value="company" id="company" className="sr-only" />
-                        <RiBriefcaseLine className="mb-3 h-6 w-6" />
-                        <span className="font-medium">Company</span>
-                        <span className="text-xs text-muted-foreground mt-1">Hire talent</span>
-                      </Label>
-                    </RadioGroup>
-                  </div>
-
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="pt-2"
-                  >
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-primary to-cyan-400 hover:from-primary/90 hover:to-cyan-400/90 text-white font-semibold text-base shadow-lg"
-                    >
-                      Complete Profile
-                    </Button>
-                  </motion.div>
-                </form>
+                        Complete Profile
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </CardContent>
 
               <CardFooter className="flex flex-col space-y-4 px-8 pb-8">
@@ -419,19 +466,19 @@ export default function SignupPage() {
                   <div className="grid grid-cols-2 gap-3 text-xs text-gray-800 mt-4">
                     <div className="flex items-center gap-1">
                       <RiSecurePaymentLine className="h-4 w-4 text-primary" />
-                      Smart Contracts
+                      IDRX Payments
                     </div>
                     <div className="flex items-center gap-1">
                       <RiShieldCheckLine className="h-4 w-4 text-success" />
-                      Escrow Protected
+                      On-Chain Verified
                     </div>
                     <div className="flex items-center gap-1">
                       <RiDashboardLine className="h-4 w-4 text-primary" />
-                      Global Payments
+                      Invoice Tracking
                     </div>
                     <div className="flex items-center gap-1">
                       <RiCheckboxCircleLine className="h-4 w-4 text-success" />
-                      Trustless
+                      Instant Settlement
                     </div>
                   </div>
                 </div>

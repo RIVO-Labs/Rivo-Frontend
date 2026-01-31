@@ -16,24 +16,19 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useAccount } from "wagmi";
-import { useEncryptionPublicKey, useSetEncryptionPublicKey } from "@/hooks/useRivoHub";
 import { RiAlertLine, RiCheckLine } from "react-icons/ri";
 
 export default function ProfilePage() {
-  const { user, isProfileComplete } = useAuth();
+  const { user, isProfileComplete, refreshUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { address } = useAccount();
-  
-  // Simplified hook usage for RIVO
-  const setEncryptionKey = useSetEncryptionPublicKey();
-  const { data: publishedKey } = useEncryptionPublicKey();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     firstName: "",
     lastName: "",
+    businessName: "",
+    businessCategory: "",
   });
 
   useEffect(() => {
@@ -51,6 +46,8 @@ export default function ProfilePage() {
             email: user.email || "",
             firstName: userData.firstName || "",
             lastName: userData.lastName || "",
+            businessName: userData.businessName || "",
+            businessCategory: userData.businessCategory || "",
           });
         } catch (error) {
           console.error('Failed to parse user data:', error);
@@ -59,6 +56,8 @@ export default function ProfilePage() {
             email: user.email || "",
             firstName: "",
             lastName: "",
+            businessName: "",
+            businessCategory: "",
           });
         }
       } else {
@@ -67,6 +66,8 @@ export default function ProfilePage() {
           email: user.email || "",
           firstName: "",
           lastName: "",
+          businessName: "",
+          businessCategory: "",
         });
       }
     }
@@ -76,10 +77,10 @@ export default function ProfilePage() {
     e.preventDefault();
 
     // Validation
-    if (!formData.email || !formData.username) {
+    if (!formData.email || !formData.username || !formData.businessName || !formData.businessCategory) {
       toast({
         title: "Validation Error",
-        description: "Email and username are required",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -102,6 +103,8 @@ export default function ProfilePage() {
           email: formData.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
+          businessName: formData.businessName,
+          businessCategory: formData.businessCategory,
           role: user.role,
           walletAddress: user.address,
           createdAt: new Date().toISOString(), // Will be overwritten if updating
@@ -110,6 +113,9 @@ export default function ProfilePage() {
 
         const addressKey = user.address.toLowerCase();
         localStorage.setItem(`user_${addressKey}`, JSON.stringify(userProfile));
+
+        // Refresh user data in context so isProfileComplete updates
+        await refreshUser();
 
         toast({
           title: "Profile Updated!",
@@ -125,45 +131,6 @@ export default function ProfilePage() {
       toast({
         title: "Update Failed",
         description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePublishEncryptionKey = async () => {
-    if (!address) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Connect your wallet to publish your encryption key.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (typeof window === "undefined" || !window.ethereum?.request) {
-      toast({
-        title: "Wallet Unavailable",
-        description: "Your wallet does not support encryption keys.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const publicKey = await window.ethereum.request({
-        method: "eth_getEncryptionPublicKey",
-        params: [address],
-      });
-
-      if (typeof publicKey !== "string") {
-        throw new Error("Unexpected response from wallet.");
-      }
-
-      setEncryptionKey.mutate(publicKey);
-    } catch (error) {
-      toast({
-        title: "Failed to Publish Key",
-        description: error instanceof Error ? error.message : "Unable to publish encryption key.",
         variant: "destructive",
       });
     }
@@ -212,32 +179,6 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-muted-foreground/40 bg-muted/40 p-4">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Encryption Public Key</p>
-                  <p className="text-xs text-muted-foreground">
-                    Publish your key so counterparts can decrypt profiles you share from agreements.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Sharing happens per agreement to keep access scoped.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Status: {publishedKey ? "Published" : "Not published"} — publish once, update only if you want to rotate the key.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePublishEncryptionKey}
-                  disabled={setEncryptionKey.isLoading}
-                >
-                  {setEncryptionKey.isLoading
-                    ? "Publishing..."
-                    : publishedKey
-                      ? "Update Encryption Key"
-                      : "Publish Encryption Key"}
-                </Button>
-              </div>
               {/* Wallet Info */}
               <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
                 <div className="space-y-1 flex-1">
@@ -249,7 +190,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Role:</span>
-                    <Badge variant="secondary">{user.role === 'freelancer' ? 'Freelancer' : 'Company'}</Badge>
+                    <Badge variant="secondary">{user.role === 'sme_owner' ? 'Business Owner' : 'Vendor'}</Badge>
                   </div>
                   {isProfileComplete && (
                     <div className="flex items-center gap-2 text-success">
@@ -264,40 +205,65 @@ export default function ProfilePage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">
-                    Username <span className="text-destructive">*</span>
+                    Contact Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="username"
                     type="text"
-                    placeholder="Enter your username (e.g., johndoe)"
+                    placeholder="Full name of contact person"
                     value={formData.username}
                     onChange={handleChange('username')}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Choose a unique username for your profile
+                    Used as the primary contact on agreements
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">
+                    Email <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={formData.email}
+                    onChange={handleChange('email')}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for notifications and communication
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="businessName">
+                      {user?.role === "sme_owner" ? "Business Name" : "Vendor Name"}
+                      <span className="text-destructive"> *</span>
+                    </Label>
                     <Input
-                      id="firstName"
+                      id="businessName"
                       type="text"
-                      placeholder="Enter your first name"
-                      value={formData.firstName}
-                      onChange={handleChange('firstName')}
+                      placeholder={user?.role === "sme_owner" ? "Your company name" : "Your store or vendor name"}
+                      value={formData.businessName}
+                      onChange={handleChange('businessName')}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="businessCategory">
+                      {user?.role === "sme_owner" ? "Industry" : "Service Category"}
+                      <span className="text-destructive"> *</span>
+                    </Label>
                     <Input
-                      id="lastName"
+                      id="businessCategory"
                       type="text"
-                      placeholder="Enter your last name"
-                      value={formData.lastName}
-                      onChange={handleChange('lastName')}
+                      placeholder={user?.role === "sme_owner" ? "e.g. Logistics, F&B, Retail" : "e.g. Catering, Materials, Services"}
+                      value={formData.businessCategory}
+                      onChange={handleChange('businessCategory')}
+                      required
                     />
                   </div>
                 </div>
@@ -316,6 +282,8 @@ export default function ProfilePage() {
                           email: user.email || "",
                           firstName: "",
                           lastName: "",
+                          businessName: user.businessName || "",
+                          businessCategory: user.businessCategory || "",
                         });
                       }
                     }}

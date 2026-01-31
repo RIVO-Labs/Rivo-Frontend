@@ -20,7 +20,9 @@ export interface UserProfileMetadata {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'freelancer' | 'company';
+  businessName?: string;
+  businessCategory?: string;
+  role: 'sme_owner' | 'vendor';
   walletAddress: string;
   createdAt: string;
   updatedAt?: string;

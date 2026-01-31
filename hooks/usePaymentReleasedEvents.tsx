@@ -108,7 +108,7 @@ export function usePaymentReleasedEvents(agreementIds?: string[]): UsePaymentRel
       setError(null);
 
       const currentBlock = await publicClient.getBlockNumber();
-      // Lisk Sepolia RPC enforces a 100k block range limit for eth_getLogs.
+      // Base Sepolia RPC enforces a 100k block range limit for eth_getLogs.
       const maxBlockRange = 100000n;
       const maxChunkSize = 5000n;
       const fromBlock = currentBlock > maxBlockRange ? currentBlock - maxBlockRange : 0n;

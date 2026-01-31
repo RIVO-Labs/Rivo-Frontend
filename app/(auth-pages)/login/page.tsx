@@ -122,7 +122,7 @@ export default function LoginPage() {
                     Connect your wallet to access programmable work agreements
                   </CardDescription>
                   <p className="text-xs text-muted-foreground mt-3">
-                    Powered by Xellar Wallet SDK on Lisk Blockchain
+                    Powered by OnchainKit on Base
                   </p>
                 </motion.div>
               </CardHeader>
@@ -144,7 +144,7 @@ export default function LoginPage() {
 
                     <div className="text-center space-y-2">
                       <p className="text-sm text-muted-foreground">
-                        Connect with Xellar Wallet to get started
+                        Connect with OnchainKit to get started
                       </p>
                       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                         <RiShieldCheckLine className="h-3 w-3 text-success" />

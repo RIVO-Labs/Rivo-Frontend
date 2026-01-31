@@ -1,20 +1,23 @@
-import { defaultConfig } from "@xellar/kit";
-import { Config } from "wagmi";
-import { liskSepolia } from "viem/chains";
+import { createConfig, http } from "wagmi";
+import { baseSepolia } from "viem/chains";
+import { coinbaseWallet, injected, metaMask } from "wagmi/connectors";
 
-const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || "";
-const xellarAppId = process.env.NEXT_PUBLIC_XELLAR_APP_ID || "";
-const xellarEnv = (process.env.NEXT_PUBLIC_XELLAR_ENV as "sandbox" | "production") || "sandbox";
 const appName = process.env.NEXT_PUBLIC_APP_NAME || "Rivo";
+const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
 
-if (!walletConnectProjectId) {
-  console.warn("NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID is not set");
-}
+export const chain = baseSepolia;
 
-export const config = defaultConfig({
-  appName,
-  walletConnectProjectId,
-  xellarAppId,
-  xellarEnv,
-  chains: [liskSepolia],
-}) as Config;
+export const config = createConfig({
+  chains: [chain],
+  connectors: [
+    injected(),
+    metaMask(),
+    coinbaseWallet({
+      appName,
+    }),
+  ],
+  ssr: true,
+  transports: {
+    [chain.id]: baseRpcUrl ? http(baseRpcUrl) : http(),
+  },
+});

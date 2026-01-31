@@ -74,7 +74,7 @@ export function Footer() {
             </div>
             <p className="text-white flex items-start gap-2">
               <RiShieldCheckLine className="h-5 w-5 text-white mt-1 flex-shrink-0" />
-              Freedom of work, with trust locked and executed by code. Build work agreements that automatically execute on Lisk blockchain.
+              Freedom of work, with trust locked and executed by code. Build work agreements that automatically execute on Base blockchain.
             </p>
           </div>
 
