@@ -44,6 +44,8 @@ import { cn } from "@/lib/utils";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards";
 import { testimonials, coreFeatures, featureCategories } from "@/app/contants";
 import { FaqSection } from "@/components/faq-section";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const featureIcons = {
   qr: RiQrCodeLine,
@@ -60,6 +62,25 @@ const featureIcons = {
 };
 
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, isProfileComplete, isLoading, user } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (isAuthenticated && isProfileComplete && user?.address) {
+      const redirectKey = `rivo_first_redirect_${user.address.toLowerCase()}`;
+      const hasRedirected = localStorage.getItem(redirectKey);
+
+      if (!hasRedirected) {
+        localStorage.setItem(redirectKey, "true");
+        router.replace("/dashboard");
+      }
+    }
+  }, [isAuthenticated, isProfileComplete, isLoading, router, user?.address]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">

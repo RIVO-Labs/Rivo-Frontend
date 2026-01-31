@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
+import { useRole } from '@/hooks/useRole';
 import {
   RiHomeLine,
   RiQrCodeLine,
@@ -68,13 +69,16 @@ export function AceternitySidebar({ email }: { email?: string }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { logout, user } = useAuth();
+  const { isSupplier } = useRole();
   const logoSrc = '/Rivologo.png';
 
   // Use user email if available, otherwise use prop
   const displayEmail = user?.email || email;
 
   // Use unified RIVO navigation
-  const navItems = rivoNavItems;
+  const navItems = isSupplier
+    ? rivoNavItems.filter((item) => item.href !== '/dashboard/suppliers')
+    : rivoNavItems;
 
   useEffect(() => {
     setIsMounted(true);

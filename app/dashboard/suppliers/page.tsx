@@ -243,6 +243,26 @@ export default function SuppliersPage() {
     }
   }, [showDetailsModal, selectedCID]);
 
+  if (!isSMEOwner) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Akses Terbatas</CardTitle>
+            <CardDescription>
+              Halaman ini hanya untuk SME Owner.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Jika kamu adalah vendor, menu Suppliers tidak tersedia untuk role ini.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-8">
       {/* Header */}

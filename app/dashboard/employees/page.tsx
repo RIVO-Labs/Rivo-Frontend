@@ -110,6 +110,26 @@ export default function EmployeesPage() {
     return total + parseFloat(emp.salary.replace(/[^\d.]/g, ''));
   }, 0);
 
+  if (!isSMEOwner) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Akses Terbatas</CardTitle>
+            <CardDescription>
+              Halaman ini hanya untuk SME Owner.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Jika kamu adalah vendor, menu Employees tidak tersedia untuk role ini.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Validate form
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -652,7 +672,7 @@ export default function EmployeesPage() {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Wallet Address</label>
-                  <p className="text-base font-mono text-sm">{decryptedEmployee?.wallet || selectedEmployeeData?.wallet}</p>
+                  <p className="text-base font-mono">{decryptedEmployee?.wallet || selectedEmployeeData?.wallet}</p>
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Join Date</label>

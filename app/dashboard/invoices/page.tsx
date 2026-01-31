@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 import { useUnlock } from "@/hooks/useUnlock";
 import { useFetchFromIPFS } from "@/hooks/useFetchFromIPFS";
 import { Permission } from "@/lib/roles";
@@ -23,7 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useRivoHub } from "@/hooks/useRivoHub";
+import { useRivoHub, useCheckInvoiceStatus, formatInvoiceStatus, usePayerInvoices, useVendorInvoices, useCancelInvoice } from "@/hooks/useRivoHub";
 import { useIDRXBalance, useIDRXAllowance, useApproveIDRX, hasSufficientAllowance, formatIDRX } from "@/hooks/useIDRXApproval";
 import { useUserInvoiceEvents, useContractOwner } from "@/hooks/useRivoHubEvents";
 import { useQRInvoicesList } from "@/hooks/usePinataList";
@@ -42,12 +43,15 @@ import {
   RiWalletLine,
   RiCheckLine,
   RiLoader4Line,
+  RiCloseLine,
 } from "react-icons/ri";
 import { isAddress } from "viem";
+import QRCode from "qrcode";
 
 export default function InvoicesPage() {
   const { address } = useAccount();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Check role and permissions
   const { hasPermission: checkPermission } = useRole();
@@ -57,10 +61,13 @@ export default function InvoicesPage() {
 
   // Hooks for smart contract interactions
   const { payInvoice, isPending, isConfirming, isSuccess, hash } = useRivoHub();
+  const { cancelInvoice, isPending: isCancelPending, isConfirming: isCancelConfirming } = useCancelInvoice();
   const { balance, balanceFormatted, refetch: refetchBalance } = useIDRXBalance(address);
   const { allowance, refetch: refetchAllowance } = useIDRXAllowance(address);
   const { approve, isPending: isApproving, isConfirming: isApprovingConfirming, isSuccess: isApproveSuccess } = useApproveIDRX();
   const { events: invoiceEvents, isLoading: isLoadingEvents } = useUserInvoiceEvents(address);
+  const { invoices: payerInvoices } = usePayerInvoices(address as `0x${string}` | undefined);
+  const { invoices: vendorInvoices } = useVendorInvoices(address as `0x${string}` | undefined);
 
   // Fetch QR invoice list from Pinata API (replaces localStorage)
   const { items: qrInvoicesList, isLoading: isLoadingQRList, error: qrListError, refetch: refetchQRInvoices } = useQRInvoicesList(address);
@@ -70,7 +77,12 @@ export default function InvoicesPage() {
   const [invoiceFormMode, setInvoiceFormMode] = useState<'generate' | 'pay'>('pay');
   const [searchTerm, setSearchTerm] = useState("");
   const [isEncrypting, setIsEncrypting] = useState(false);
-  
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState<string>("");
+  const [generatedQr, setGeneratedQr] = useState<{ dataUrl: string; payload: string } | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+
   // Modal for viewing QR invoice details
   const [selectedInvoiceData, setSelectedInvoiceData] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -78,10 +90,27 @@ export default function InvoicesPage() {
   
   const [formData, setFormData] = useState({
     invoiceId: "",
+    vendorName: "",
+    payerName: "",
     vendorAddress: "",
     amount: "",
     description: "",
+    dueDate: "",
+    lineItems: "",
   });
+
+  const generateInvoiceId = () => {
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `INV-${datePart}-${randomPart}`;
+  };
+
+  useEffect(() => {
+    if (showCreateForm && !formData.invoiceId) {
+      setFormData((prev) => ({ ...prev, invoiceId: generateInvoiceId() }));
+    }
+  }, [showCreateForm, formData.invoiceId]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [permissionError, setPermissionError] = useState<string>("");
   
@@ -131,9 +160,13 @@ export default function InvoicesPage() {
       // Reset form
       setFormData({
         invoiceId: "",
+        vendorName: "",
+        payerName: "",
         vendorAddress: "",
         amount: "",
         description: "",
+        dueDate: "",
+        lineItems: "",
       });
       setShowCreateForm(false);
     }
@@ -145,6 +178,10 @@ export default function InvoicesPage() {
 
     if (!formData.invoiceId.trim()) {
       errors.invoiceId = "Invoice ID is required";
+    }
+
+    if (invoiceFormMode === 'generate' && !formData.vendorName.trim()) {
+      errors.vendorName = "Vendor name is required";
     }
 
     if (!formData.vendorAddress.trim()) {
@@ -201,9 +238,13 @@ export default function InvoicesPage() {
     try {
       const qrInvoiceData = {
         invoiceId: formData.invoiceId,
+        vendorName: formData.vendorName,
+        payerName: formData.payerName,
         vendorAddress: formData.vendorAddress,
         amount: parseFloat(formData.amount),
         description: formData.description,
+        dueDate: formData.dueDate,
+        lineItems: formData.lineItems,
         createdAt: new Date().toISOString(),
         createdBy: address,
         status: 'generated',
@@ -224,7 +265,20 @@ export default function InvoicesPage() {
         },
       });
 
-      const cid = uploadResult.cid || uploadResult;
+      const cid = uploadResult.ipfsHash;
+
+      if (!cid) {
+        throw new Error(uploadResult.error || "Failed to upload invoice metadata to IPFS");
+      }
+
+      const qrPayload = JSON.stringify({
+        invoiceId: formData.invoiceId,
+        cid,
+      });
+
+      const dataUrl = await QRCode.toDataURL(qrPayload, { width: 260, margin: 1 });
+      setGeneratedQr({ dataUrl, payload: qrPayload });
+      setShowQrModal(true);
 
       // Upload successful - metadata is stored in Pinata with walletAddress filter
       // Refetch QR invoice list from Pinata API to get updated list
@@ -233,9 +287,13 @@ export default function InvoicesPage() {
       // Reset form
       setFormData({
         invoiceId: "",
+        vendorName: "",
+        payerName: "",
         vendorAddress: "",
         amount: "",
         description: "",
+        dueDate: "",
+        lineItems: "",
       });
       setFormErrors({});
       setPermissionError("");
@@ -254,6 +312,63 @@ export default function InvoicesPage() {
       });
     } finally {
       setIsEncrypting(false);
+    }
+  };
+
+  const handleParseInvoice = async () => {
+    if (!invoiceFile) {
+      setParseError("Please upload an invoice image first.");
+      return;
+    }
+
+    setParseError("");
+    setIsParsing(true);
+
+    try {
+      const fileDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(invoiceFile);
+      });
+
+      const [header, base64] = fileDataUrl.split(",");
+      const mimeType = header.match(/data:(.*);base64/)?.[1] || "image/png";
+
+      const response = await fetch("/api/invoice-parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to parse invoice");
+      }
+
+      const result = data?.result || {};
+
+      setFormData((prev) => ({
+        ...prev,
+        invoiceId: result.invoiceId || prev.invoiceId,
+        vendorName: result.vendorName || prev.vendorName,
+        payerName: result.payerName || prev.payerName,
+        vendorAddress: result.vendorAddress || prev.vendorAddress,
+        amount: result.amount ? String(result.amount) : prev.amount,
+        description: result.description || prev.description,
+        dueDate: result.dueDate || prev.dueDate,
+        lineItems: result.lineItems || prev.lineItems,
+      }));
+
+      toast({
+        title: "Invoice Parsed",
+        description: "Form fields have been auto-filled from the invoice.",
+      });
+    } catch (error: any) {
+      setParseError(error?.message || "Failed to parse invoice");
+    } finally {
+      setIsParsing(false);
     }
   };
 
@@ -323,9 +438,13 @@ export default function InvoicesPage() {
 
       const qrInvoiceData = {
         invoiceId: formData.invoiceId,
+        vendorName: formData.vendorName,
+        payerName: formData.payerName,
         vendorAddress: formData.vendorAddress,
         amount: parseFloat(formData.amount),
         description: formData.description,
+        dueDate: formData.dueDate,
+        lineItems: formData.lineItems,
         createdAt: new Date().toISOString(),
         createdBy: address,
         status: 'paid',
@@ -345,7 +464,11 @@ export default function InvoicesPage() {
         },
       });
 
-      const cid = uploadResult.cid || uploadResult;
+      const cid = uploadResult.ipfsHash;
+
+      if (!cid) {
+        throw new Error(uploadResult.error || "Failed to upload invoice metadata to IPFS");
+      }
 
       await payInvoice(
         formData.invoiceId,
@@ -372,8 +495,31 @@ export default function InvoicesPage() {
   const { owner: contractOwner } = useContractOwner();
   const isContractOwner = address && contractOwner &&
     address.toLowerCase() === contractOwner.toLowerCase();
+  const isVendor = user?.role === "vendor";
+  const canShowPayForm = !isVendor && !!isContractOwner && canPayInvoice;
+
+  useEffect(() => {
+    if (isVendor && invoiceFormMode === 'pay') {
+      setInvoiceFormMode('generate');
+    }
+  }, [isVendor, invoiceFormMode]);
 
   // Calculate statistics from events
+  const onchainInvoices = useMemo(() => {
+    if (!address) return [];
+    return isContractOwner ? payerInvoices : vendorInvoices;
+  }, [address, isContractOwner, payerInvoices, vendorInvoices]);
+
+  const invoiceStatusMap = useMemo(() => {
+    return new Map(onchainInvoices.map((inv) => [inv.invoiceId, inv.status]));
+  }, [onchainInvoices]);
+
+  const getStatusBadgeClass = (status?: number) => {
+    if (status === 1) return "bg-green-500/10 text-green-700 border-green-500/20";
+    if (status === 2) return "bg-red-500/10 text-red-700 border-red-500/20";
+    return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
+  };
+
   const stats = useMemo(() => {
     if (!address) return { totalPaid: "0", totalPending: "0", count: 0 };
 
@@ -384,15 +530,23 @@ export default function InvoicesPage() {
       return sum + parseFloat(event.amountFormatted);
     }, 0);
 
+    const pendingCount = onchainInvoices.filter((inv) => inv.status === 0).length;
+
     return {
       totalPaid: totalAmount.toLocaleString("id-ID", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       }),
-      totalPending: "0", // Cannot determine pending invoices from blockchain
-      count: invoiceEvents.length,
+      totalPending: pendingCount.toString(),
+      count: onchainInvoices.length || invoiceEvents.length,
     };
-  }, [invoiceEvents, address]);
+  }, [invoiceEvents, address, onchainInvoices]);
+
+  const selectedInvoiceId = decryptedQRInvoice?.invoiceId || selectedInvoiceData?.invoiceId;
+  const { status: onChainStatus } = useCheckInvoiceStatus(selectedInvoiceId);
+  const statusLabel = onChainStatus !== undefined
+    ? formatInvoiceStatus(onChainStatus)
+    : (decryptedQRInvoice?.status || selectedInvoiceData?.status || "Unknown");
 
   // Filter events for display
   const filteredInvoices = useMemo(() => {
@@ -442,17 +596,19 @@ export default function InvoicesPage() {
             <RiQrCodeLine className="mr-2 h-4 w-4" />
             Generate QR Invoice
           </Button>
-          <Button
-            onClick={() => {
-              setPermissionError("");
-              setInvoiceFormMode('pay');
-              setShowCreateForm(true);
-            }}
-            disabled={!address || !canPayInvoice}
-          >
-            <RiAddLine className="mr-2 h-4 w-4" />
-            Pay Invoice
-          </Button>
+          {canShowPayForm && (
+            <Button
+              onClick={() => {
+                setPermissionError("");
+                setInvoiceFormMode('pay');
+                setShowCreateForm(true);
+              }}
+              disabled={!address || !canPayInvoice}
+            >
+              <RiAddLine className="mr-2 h-4 w-4" />
+              Pay Invoice
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -519,6 +675,12 @@ export default function InvoicesPage() {
             </Button>
           </div>
 
+          {invoiceFormMode === 'pay' && !canShowPayForm && (
+            <div className="mb-4 p-3 bg-yellow-500/10 text-yellow-700 border border-yellow-500/20 rounded-md text-sm">
+              Hanya SME Owner yang bisa melakukan pembayaran invoice.
+            </div>
+          )}
+
           {permissionError && (
             <div className="mb-4 p-3 bg-red-500/10 text-red-700 border border-red-500/20 rounded-md text-sm">
               {permissionError}
@@ -526,18 +688,67 @@ export default function InvoicesPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="invoiceFile">Invoice Image (optional)</Label>
+              <Input
+                id="invoiceFile"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleParseInvoice}
+                  disabled={!invoiceFile || isParsing}
+                >
+                  {isParsing ? (
+                    <>
+                      <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+                      Parsing...
+                    </>
+                  ) : (
+                    "Auto-fill with AI"
+                  )}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Upload an invoice image to auto-fill fields.
+                </span>
+              </div>
+              {parseError && (
+                <p className="text-sm text-red-500">{parseError}</p>
+              )}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="invoiceId">Invoice ID</Label>
               <Input
                 id="invoiceId"
                 placeholder="INV-001"
                 value={formData.invoiceId}
-                onChange={(e) =>
-                  setFormData({ ...formData, invoiceId: e.target.value })
-                }
+                readOnly
+                disabled
               />
+              <p className="text-xs text-muted-foreground">
+                Auto‑generated.
+              </p>
               {formErrors.invoiceId && (
                 <p className="text-sm text-red-500">{formErrors.invoiceId}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vendorName">Vendor Name</Label>
+              <Input
+                id="vendorName"
+                placeholder="Vendor name"
+                value={formData.vendorName}
+                onChange={(e) =>
+                  setFormData({ ...formData, vendorName: e.target.value })
+                }
+              />
+              {formErrors.vendorName && (
+                <p className="text-sm text-red-500">{formErrors.vendorName}</p>
               )}
             </div>
 
@@ -558,6 +769,18 @@ export default function InvoicesPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="payerName">Payer / Business Name</Label>
+              <Input
+                id="payerName"
+                placeholder="PT Example"
+                value={formData.payerName}
+                onChange={(e) =>
+                  setFormData({ ...formData, payerName: e.target.value })
+                }
+              />
+            </div>
+
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="vendorAddress">
                 {invoiceFormMode === 'generate' ? 'Vendor/Buyer Wallet Address' : 'Vendor Wallet Address'}
@@ -575,6 +798,18 @@ export default function InvoicesPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, dueDate: e.target.value })
+                }
+              />
+            </div>
+
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
@@ -583,6 +818,18 @@ export default function InvoicesPage() {
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="lineItems">Line Items (Optional)</Label>
+              <Textarea
+                id="lineItems"
+                placeholder="e.g. Consulting - 10 hours x 1,000,000"
+                value={formData.lineItems}
+                onChange={(e) =>
+                  setFormData({ ...formData, lineItems: e.target.value })
                 }
               />
             </div>
@@ -607,7 +854,7 @@ export default function InvoicesPage() {
               <>
                 <Button
                   onClick={!isApprovedForAmount ? handleApprove : handlePayInvoice}
-                  disabled={isPending || isConfirming || isEncrypting}
+                  disabled={!canShowPayForm || isPending || isConfirming || isEncrypting}
                 >
                   {isEncrypting || isPending || isConfirming ? (
                     <>
@@ -747,8 +994,8 @@ export default function InvoicesPage() {
                         <h3 className="font-semibold">
                           {invoice.invoiceId.slice(0, 10)}...
                         </h3>
-                        <Badge className="bg-green-500/10 text-green-700 border-green-500/20">
-                          Paid
+                        <Badge className={getStatusBadgeClass(invoiceStatusMap.get(invoice.invoiceId as `0x${string}`))}>
+                          {formatInvoiceStatus(invoiceStatusMap.get(invoice.invoiceId as `0x${string}`))}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-1">
@@ -782,6 +1029,21 @@ export default function InvoicesPage() {
                         <RiQrCodeLine className="h-4 w-4 mr-1" />
                         QR Details
                       </Button>
+                      {isContractOwner && invoiceStatusMap.get(invoice.invoiceId as `0x${string}`) === 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isCancelPending || isCancelConfirming}
+                          onClick={async () => {
+                            const reason = window.prompt("Alasan pembatalan invoice:");
+                            if (!reason) return;
+                            await cancelInvoice(invoice.invoiceId, reason);
+                          }}
+                        >
+                          <RiCloseLine className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -838,14 +1100,38 @@ export default function InvoicesPage() {
                   <label className="text-sm font-semibold text-muted-foreground">Vendor Address</label>
                   <p className="font-mono text-sm">{decryptedQRInvoice?.vendorAddress || selectedInvoiceData?.vendorAddress}</p>
                 </div>
+                {(decryptedQRInvoice?.vendorName || selectedInvoiceData?.vendorName) && (
+                  <div>
+                    <label className="text-sm font-semibold text-muted-foreground">Vendor Name</label>
+                    <p className="text-base">{decryptedQRInvoice?.vendorName || selectedInvoiceData?.vendorName}</p>
+                  </div>
+                )}
+                {(decryptedQRInvoice?.payerName || selectedInvoiceData?.payerName) && (
+                  <div>
+                    <label className="text-sm font-semibold text-muted-foreground">Payer / Business</label>
+                    <p className="text-base">{decryptedQRInvoice?.payerName || selectedInvoiceData?.payerName}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Status</label>
-                  <Badge>{decryptedQRInvoice?.status || selectedInvoiceData?.status}</Badge>
+                  <Badge>{statusLabel}</Badge>
                 </div>
+                {(decryptedQRInvoice?.dueDate || selectedInvoiceData?.dueDate) && (
+                  <div>
+                    <label className="text-sm font-semibold text-muted-foreground">Due Date</label>
+                    <p className="text-base">{decryptedQRInvoice?.dueDate || selectedInvoiceData?.dueDate}</p>
+                  </div>
+                )}
                 <div className="md:col-span-2">
                   <label className="text-sm font-semibold text-muted-foreground">Description</label>
                   <p className="text-base">{decryptedQRInvoice?.description || selectedInvoiceData?.description || "No description"}</p>
                 </div>
+                {(decryptedQRInvoice?.lineItems || selectedInvoiceData?.lineItems) && (
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-semibold text-muted-foreground">Line Items</label>
+                    <p className="text-base whitespace-pre-wrap">{decryptedQRInvoice?.lineItems || selectedInvoiceData?.lineItems}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground">Created At</label>
                   <p className="text-base">{decryptedQRInvoice?.createdAt || selectedInvoiceData?.createdAt}</p>
@@ -876,6 +1162,32 @@ export default function InvoicesPage() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generated QR Modal */}
+      <Dialog open={showQrModal} onOpenChange={setShowQrModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Invoice</DialogTitle>
+            <DialogDescription>
+              Scan this QR to load invoice data.
+            </DialogDescription>
+          </DialogHeader>
+
+          {generatedQr ? (
+            <div className="flex flex-col items-center gap-4">
+              <img src={generatedQr.dataUrl} alt="QR Invoice" className="w-64 h-64" />
+              <Button
+                variant="outline"
+                onClick={() => navigator.clipboard.writeText(generatedQr.payload)}
+              >
+                Copy Payload
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No QR generated yet.</p>
+          )}
         </DialogContent>
       </Dialog>
     </div>
